@@ -14,6 +14,7 @@ import torch.nn as nn
 from tqdm import tqdm
 
 # Import my stuff
+import cfg
 import inception_utils
 import train_fns
 import utils
@@ -210,7 +211,7 @@ def run(config):
 
 def main():
     # parse command line and run
-    parser = utils.prepare_parser()
+    parser = cfg.prepare_parser()
     config = vars(parser.parse_args())
     print(config)
     run(config)
