@@ -396,8 +396,8 @@ def progress(items, desc='', total=None, min_delay=0.1, displaytype='s1k'):
             t_last = t_now
         yield item
     t_total = time.time() - t_start
-    print("\r%s%d/%d (100.00%%) (took %d:%02d)" % ((desc, total, total) +
-                                                   divmod(t_total, 60)))
+    print("\r%s%d/%d (100.00%%) (took %d:%02d)" % ((desc, total, total)
+                                                   + divmod(t_total, 60)))
 
 
 # Sample function for use with inception metrics
