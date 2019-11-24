@@ -7,21 +7,21 @@
     Let's go.
 """
 
-import os
 import functools
-from tqdm import tqdm
-
+import os
 
 import torch
-import torch.nn as nn
-import torch.multiprocessing as mp
 import torch.distributed as dist
+import torch.multiprocessing as mp
+import torch.nn as nn
+from tqdm import tqdm
 
 # Import my stuff
 import cfg
+import data
 import inception_utils
-import utils
 import train_fns
+import utils
 from sync_batchnorm import patch_replication_callback
 
 # The main training file. Config is a dictionary specifying the configuration
@@ -187,7 +187,7 @@ def main_worker(gpu, ngpus_per_node, config):
     # a full D iteration (regardless of number of D steps and accumulations)
     D_batch_size = (config['batch_size'] * config['num_D_steps']
                     * config['num_D_accumulations'])
-    loaders = utils.get_data_loaders(**{**config, 'batch_size': D_batch_size,
+    loaders = data.get_data_loaders(**{**config, 'batch_size': D_batch_size,
                                         'start_itr': state_dict['itr']})
 
     # Prepare inception metrics: FID and IS
