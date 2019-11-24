@@ -1,16 +1,12 @@
-import numpy as np
-import math
 import functools
 
 import torch
 import torch.nn as nn
-from torch.nn import init
-import torch.optim as optim
 import torch.nn.functional as F
-from torch.nn import Parameter as P
+import torch.optim as optim
+from torch.nn import init
 
 import layers
-from sync_batchnorm import SynchronizedBatchNorm2d as SyncBatchNorm2d
 
 
 # Architectures for G

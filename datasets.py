@@ -1,21 +1,18 @@
 ''' Datasets
     This file contains definitions for our CIFAR, ImageFolder, and HDF5 datasets
 '''
-import pickle
-import torch
-import h5py as h5
 import os
 import os.path
+import pickle
 import sys
-from PIL import Image
-import numpy as np
-from tqdm import tqdm, trange
 
-import torchvision.datasets as dset
-import torchvision.transforms as transforms
-from torchvision.datasets.utils import download_url, check_integrity
+import h5py as h5
+import numpy as np
+import torch
 import torch.utils.data as data
-from torch.utils.data import DataLoader
+import torchvision.datasets as dset
+from PIL import Image
+from tqdm import tqdm
 
 IMG_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm']
 

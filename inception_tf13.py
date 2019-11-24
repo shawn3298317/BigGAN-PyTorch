@@ -7,20 +7,18 @@ To use this code, run sample.py on your model with --sample_npz, and then
 pass the experiment name in the --experiment_name.
 This code also saves pool3 stats to an npz file for FID calculation
 '''
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
+import math
 import os.path
 import sys
 import tarfile
-import math
-from tqdm import tqdm, trange
 from argparse import ArgumentParser
 
 import numpy as np
-from six.moves import urllib
 import tensorflow as tf
+from six.moves import urllib
+from tqdm import trange
 
 MODEL_DIR = ''
 DATA_URL = 'http://download.tensorflow.org/models/image/imagenet/inception-2015-12-05.tgz'

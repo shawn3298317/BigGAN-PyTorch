@@ -1,13 +1,14 @@
 ''' train_fns.py
 Functions for the main loop of training different conditional image models
 '''
+import os
+
 import torch
 import torch.nn as nn
 import torchvision
-import os
 
-import utils
 import losses
+import utils
 
 
 # Dummy training function for debugging

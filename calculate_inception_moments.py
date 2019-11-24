@@ -6,15 +6,15 @@
  Note that if you don't shuffle the data, the IS of true data will be under-
  estimated as it is label-ordered. By default, the data is not shuffled
  so as to reduce non-determinism. '''
+from argparse import ArgumentParser
+
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from tqdm import tqdm
 
-import utils
 import inception_utils
-from tqdm import tqdm, trange
-from argparse import ArgumentParser
+import utils
 
 
 def prepare_parser():

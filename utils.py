@@ -8,25 +8,24 @@ or train_fns.py.
 '''
 
 from __future__ import print_function
-from torch.optim.optimizer import Optimizer
-import math
-import sys
-import os
-import numpy as np
-import time
+
 import datetime
 import json
-import pickle
+import math
+import os
+import sys
+import time
 from argparse import ArgumentParser
-import animal_hash
 
+import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as transforms
+from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
+import animal_hash
 import datasets as dset
 
 

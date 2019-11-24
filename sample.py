@@ -1,23 +1,15 @@
 ''' Sample
    This script loads a pretrained net and a weightsfile and sample '''
 import functools
-import math
+
 import numpy as np
-from tqdm import tqdm, trange
-
-
 import torch
-import torch.nn as nn
-from torch.nn import init
-import torch.optim as optim
-import torch.nn.functional as F
-from torch.nn import Parameter as P
 import torchvision
+from tqdm import trange
 
 # Import my stuff
 import inception_utils
 import utils
-import losses
 
 
 def run(config):

@@ -12,12 +12,10 @@
     those obtained through TF.
 '''
 import numpy as np
-from scipy import linalg  # For numpy FID
-import time
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from scipy import linalg  # For numpy FID
 from torch.nn import Parameter as P
 from torchvision.models.inception import inception_v3
 

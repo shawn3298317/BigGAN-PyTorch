@@ -7,26 +7,16 @@
     Let's go.
 """
 
-import os
 import functools
-import math
-import numpy as np
-from tqdm import tqdm, trange
-
 
 import torch
 import torch.nn as nn
-from torch.nn import init
-import torch.optim as optim
-import torch.nn.functional as F
-from torch.nn import Parameter as P
-import torchvision
+from tqdm import tqdm
 
 # Import my stuff
 import inception_utils
-import utils
-import losses
 import train_fns
+import utils
 from sync_batchnorm import patch_replication_callback
 
 # The main training file. Config is a dictionary specifying the configuration
