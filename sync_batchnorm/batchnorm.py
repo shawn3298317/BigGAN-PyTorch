@@ -35,6 +35,7 @@ _ChildMessage = collections.namedtuple('_ChildMessage', ['sum', 'ssum', 'sum_siz
 _MasterMessage = collections.namedtuple('_MasterMessage', ['sum', 'inv_std'])
 # _MasterMessage = collections.namedtuple('_MasterMessage', ['sum', 'ssum', 'sum_size'])
 
+
 class _SynchronizedBatchNorm(_BatchNorm):
     def __init__(self, num_features, eps=1e-5, momentum=0.1, affine=True):
         super(_SynchronizedBatchNorm, self).__init__(num_features, eps=eps, momentum=momentum, affine=affine)
@@ -52,9 +53,9 @@ class _SynchronizedBatchNorm(_BatchNorm):
                 input, self.running_mean, self.running_var, self.weight, self.bias,
                 self.training, self.momentum, self.eps)
             if gain is not None:
-              out = out + gain
+                out = out + gain
             if bias is not None:
-              out = out + bias
+                out = out + bias
             return out
 
         # Resize the input to (B, C, -1).
@@ -78,29 +79,29 @@ class _SynchronizedBatchNorm(_BatchNorm):
         # else:
             # # print('there')
             # sum, ssum, num = self._slave_pipe.run_slave(_ChildMessage(input_sum, input_ssum, sum_size))
-        
+
         # print('how2')
         # num = sum_size
-        # print('Sum: %f, ssum: %f, sumsize: %f, insum: %f' %(float(sum.sum().cpu()), float(ssum.sum().cpu()), float(sum_size), float(input_sum.sum().cpu()))) 
+        # print('Sum: %f, ssum: %f, sumsize: %f, insum: %f' %(float(sum.sum().cpu()), float(ssum.sum().cpu()), float(sum_size), float(input_sum.sum().cpu())))
         # Fix the graph
         # sum = (sum.detach() - input_sum.detach()) + input_sum
         # ssum = (ssum.detach() - input_ssum.detach()) + input_ssum
-        
+
         # mean = sum / num
         # var = ssum / num - mean ** 2
         # # var = (ssum - mean * sum) / num
         # inv_std = torch.rsqrt(var + self.eps)
-        
+
         # Compute the output.
         if gain is not None:
-          # print('gaining')
-          # scale = _unsqueeze_ft(inv_std) * gain.squeeze(-1)
-          # shift = _unsqueeze_ft(mean) * scale - bias.squeeze(-1)
-          # output = input * scale - shift
-          output = (input - _unsqueeze_ft(mean)) * (_unsqueeze_ft(inv_std) * gain.squeeze(-1)) + bias.squeeze(-1)
+            # print('gaining')
+            # scale = _unsqueeze_ft(inv_std) * gain.squeeze(-1)
+            # shift = _unsqueeze_ft(mean) * scale - bias.squeeze(-1)
+            # output = input * scale - shift
+            output = (input - _unsqueeze_ft(mean)) * (_unsqueeze_ft(inv_std) * gain.squeeze(-1)) + bias.squeeze(-1)
         elif self.affine:
             # MJY:: Fuse the multiplication for speed.
-            output = (input - _unsqueeze_ft(mean)) * _unsqueeze_ft(inv_std * self.weight) + _unsqueeze_ft(self.bias)        
+            output = (input - _unsqueeze_ft(mean)) * _unsqueeze_ft(inv_std * self.weight) + _unsqueeze_ft(self.bias)
         else:
             output = (input - _unsqueeze_ft(mean)) * _unsqueeze_ft(inv_std)
 
@@ -139,7 +140,7 @@ class _SynchronizedBatchNorm(_BatchNorm):
         # print('b')
         outputs = []
         for i, rec in enumerate(intermediates):
-            outputs.append((rec[0], _MasterMessage(*broadcasted[i*2:i*2+2])))
+            outputs.append((rec[0], _MasterMessage(*broadcasted[i * 2:i * 2 + 2])))
             # outputs.append((rec[0], _MasterMessage(*broadcasted[i*3:i*3+3])))
 
         return outputs
