@@ -30,7 +30,6 @@ def get_dataset(name, root_dir=None, resolution=128, dataset_type='ImageFolder',
                 split='train', transform=None, target_transform=None, load_in_mem=False,
                 download=False):
 
-
     if dataset_type == 'ImageFolder':
         # Get torchivision dataset class for desired dataset.
         dataset_func = getattr(torchvision.datasets, name)
@@ -66,9 +65,6 @@ def get_dataset(name, root_dir=None, resolution=128, dataset_type='ImageFolder',
         hdf5_file = os.path.join(root_dir, hdf5_name)
         if not os.path.exists(hdf5_file):
             raise ValueError('Cannot find hdf5 file. You should download it, or create if yourself!')
-
-        def target_transform(x):
-            return 0 if name == 'CelebA' else None
 
         dataset = ImageHDF5(hdf5_file, load_in_mem=load_in_mem,
                             target_transform=target_transform)
