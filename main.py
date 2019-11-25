@@ -18,8 +18,9 @@ from tqdm import tqdm
 
 # Import my stuff
 import cfg
-import data
+import datasets
 import inception_utils
+import models
 import train_fns
 import utils
 from sync_batchnorm import patch_replication_callback
@@ -35,16 +36,11 @@ def run(config):
     # configuration into the config-dict (e.g. inferring the number of classes
     # and size of the images from the dataset, passing in a pytorch object
     # for the activation specified as a string)
-    config['resolution'] = utils.imsize_dict[config['dataset']]
-    config['n_classes'] = utils.nclass_dict[config['dataset']]
-    config['G_activation'] = utils.activation_dict[config['G_nl']]
-    config['D_activation'] = utils.activation_dict[config['D_nl']]
-    if any(x in config['dataset'] for x in ['P32', 'P64', 'P128', 'P256', 'P512']):
-        # config['pretrained'] = 'places365'
-        # for now until everything is fixed...
-        config['pretrained'] = 'places365'
-    else:
-        config['pretrained'] = 'imagenet'
+    # config['resolution'] = cfg.imsize_dict[config['dataset']]
+    config['n_classes'] = cfg.nclass_dict[config['dataset']]
+    config['G_activation'] = cfg.activation_dict[config['G_nl']]
+    config['D_activation'] = cfg.activation_dict[config['D_nl']]
+    config['pretrained'] = config['dataset'].lower()
 
     # By default, skip init if resuming training.
     if config['resume']:
@@ -79,7 +75,6 @@ def run(config):
 def main_worker(gpu, ngpus_per_node, config):
 
     device = f'cuda:{gpu}'
-    print(device)
     config['gpu'] = gpu
     torch.backends.cudnn.benchmark = True
     if config['distributed']:
@@ -88,12 +83,13 @@ def main_worker(gpu, ngpus_per_node, config):
         if config['multiprocessing_distributed']:
             # For multiprocessing distributed training, rank needs to be the
             # global rank among all the processes
-            config['rank'] = int(os.environ.get('OMPI_COMM_WORLD_RANK'))
+            # config['rank'] = int(os.environ.get('OMPI_COMM_WORLD_RANK'))
             config['rank'] = config['rank'] * ngpus_per_node + gpu
         dist.init_process_group(backend=config['dist_backend'], init_method=config['dist_url'],
                                 world_size=config['world_size'], rank=config['rank'])
     # Import the model--this line allows us to dynamically select different files.
-    model = __import__(config['model'])
+    # model = __import__(config['model'])
+    model = getattr(models, config['model'])
     experiment_name = (config['experiment_name'] if config['experiment_name']
                        else utils.name_from_config(config))
     # experiment_name += '_{}'.format(config['rank'])
@@ -187,12 +183,19 @@ def main_worker(gpu, ngpus_per_node, config):
     # a full D iteration (regardless of number of D steps and accumulations)
     D_batch_size = (config['batch_size'] * config['num_D_steps']
                     * config['num_D_accumulations'])
-    loaders = data.get_data_loaders(**{**config, 'batch_size': D_batch_size,
-                                        'start_itr': state_dict['itr']})
+    loaders = datasets.get_dataloaders(**{**config, 'batch_size': D_batch_size})
 
     # Prepare inception metrics: FID and IS
+    dataset = config['dataset']
+    pretrained = config['pretrained']
+    resolution = config['resolution']
+    fname = f'{dataset}-{resolution}_{pretrained}_inception_moments.npz'
+    inception_root_dir = cfg.get_root_dirs(dataset,
+                                           resolution=config['resolution'],
+                                           data_root=config['data_root'])
+    inception_filename = os.path.join(inception_root_dir, fname)
     get_inception_metrics = inception_utils.prepare_inception_metrics(
-        config['dataset'], config, config['no_fid'])
+        inception_filename, config, config['no_fid'])
 
     # Prepare noise and randomly sampled label arrays
     # Allow for different batch sizes in G
@@ -284,10 +287,9 @@ def main_worker(gpu, ngpus_per_node, config):
 
 
 def main():
-    # parse command line and run
+    # Parse command line and run.
     parser = cfg.prepare_parser()
     config = vars(parser.parse_args())
-    print(config)
     run(config)
 
 

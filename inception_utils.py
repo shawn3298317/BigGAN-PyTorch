@@ -19,17 +19,27 @@ from scipy import linalg  # For numpy FID
 from torch.nn import Parameter as P
 from torchvision.models.inception import inception_v3
 
+import pretorched
 
-# Module that wraps the inception network to enable use with dataparallel and
-# returning pool features and logits.
+
 class WrapInception(nn.Module):
-    def __init__(self, net):
-        super(WrapInception, self).__init__()
+    """Module that wraps the inception network to enable use with dataparallel and
+    returning pool features and logits.
+    """
+
+    def __init__(self, net, pretrained='imagenet'):
+        super().__init__()
         self.net = net
-        self.mean = P(torch.tensor([0.485, 0.456, 0.406]).view(1, -1, 1, 1),
-                      requires_grad=False)
-        self.std = P(torch.tensor([0.229, 0.224, 0.225]).view(1, -1, 1, 1),
-                     requires_grad=False)
+        if pretrained == 'places365':
+            self.mean = P(torch.tensor([0.5, 0.5, 0.5]).view(1, -1, 1, 1),
+                          requires_grad=False)
+            self.std = P(torch.tensor([0.5, 0.5, 0.5]).view(1, -1, 1, 1),
+                         requires_grad=False)
+        else:
+            self.mean = P(torch.tensor([0.485, 0.456, 0.406]).view(1, -1, 1, 1),
+                          requires_grad=False)
+            self.std = P(torch.tensor([0.229, 0.224, 0.225]).view(1, -1, 1, 1),
+                         requires_grad=False)
 
     def forward(self, x):
         # Normalize x
@@ -255,29 +265,46 @@ def accumulate_inception_activations(sample, net, num_inception_images=50000):
     return torch.cat(pool, 0), torch.cat(logits, 0), torch.cat(labels, 0)
 
 
-# Load and wrap the Inception model
-def load_inception_net(parallel=False):
-    inception_model = inception_v3(pretrained=True, transform_input=False)
-    inception_model = WrapInception(inception_model.eval()).cuda()
-    if parallel:
-        print('Parallelizing Inception module...')
-        inception_model = nn.DataParallel(inception_model)
+def load_inception_net(config):
+    """Load and wrap the Inception model."""
+    dataset = config['pretrained']
+    nc = {'imagenet': 1000, 'places365': 365}.get(dataset, 1000)
+    inception_model = pretorched.inceptionv3(num_classes=nc, pretrained=dataset)
+    inception_model.fc = inception_model.last_linear
+    inception_model = WrapInception(inception_model.eval(), pretrained=dataset).cuda()
+    if config['distributed']:
+        if config['gpu'] is not None:
+            torch.cuda.set_device(config['gpu'])
+            inception_model.cuda(config['gpu'])
+        else:
+            inception_model.cuda()
+            inception_model = torch.nn.parallel.DistributedDataParallel(
+                inception_model
+            )
+    elif config['gpu'] is not None:
+        torch.cuda.set_device(config['gpu'])
+        inception_model = inception_model.cuda(config['gpu'])
+    else:
+        inception_model = torch.nn.DataParallel(inception_model).cuda()
     return inception_model
-
 
 # This produces a function which takes in an iterator which returns a set number of samples
 # and iterates until it accumulates config['num_inception_images'] images.
 # The iterator can return samples with a different batch size than used in
 # training, using the setting confg['inception_batchsize']
-def prepare_inception_metrics(dataset, parallel, no_fid=False):
+
+
+def prepare_inception_metrics(filename, config, no_fid=False):
     # Load metrics; this is intentionally not in a try-except loop so that
     # the script will crash here if it cannot find the Inception moments.
     # By default, remove the "hdf5" from dataset
-    dataset = dataset.strip('_hdf5')
-    data_mu = np.load(dataset + '_inception_moments.npz')['mu']
-    data_sigma = np.load(dataset + '_inception_moments.npz')['sigma']
+    # dataset = config['dataset']
+    # pretrained = config['pretrained']
+    # fname = f'{dataset}_{pretrained}_inception_moments.npz'
+    data_mu = np.load(filename)['mu']
+    data_sigma = np.load(filename)['sigma']
     # Load network
-    net = load_inception_net(parallel)
+    net = load_inception_net(config)
 
     def get_inception_metrics(sample, num_inception_images, num_splits=10,
                               prints=True, use_torch=True):
