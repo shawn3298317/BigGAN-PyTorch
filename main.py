@@ -154,7 +154,6 @@ def main_worker(gpu, ngpus_per_node, config):
         GD = GD.cuda(config['gpu'])
     else:
         GD = torch.nn.DataParallel(GD).cuda()
-    print('Models sent to devices!') if config['rank'] == 0 else None
     # If parallel, parallelize the GD module
 #   if config['parallel']:
     # GD = nn.DataParallel(GD)

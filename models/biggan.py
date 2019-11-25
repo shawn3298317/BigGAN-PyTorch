@@ -253,7 +253,7 @@ class Generator(nn.Module):
         # Prepare model
         # If not using shared embeddings, self.shared is just a passthrough
         self.shared = (self.embedding_func(n_classes, self.shared_dim) if G_shared
-                       else layers.identity())
+                       else nn.Identity())
         # First linear layer
         self.linear = self.linear_func(self.dim_z // self.num_slots,
                                        self.arch['in_channels'][0] * (self.bottom_width ** 2))
