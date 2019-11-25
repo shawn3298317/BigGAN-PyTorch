@@ -4,7 +4,6 @@ Functions for the main loop of training different conditional image models
 import os
 
 import torch
-import torch.nn as nn
 import torchvision
 
 import cfg
@@ -114,7 +113,7 @@ def save_and_sample(G, D, G_ema, z_, y_, fixed_z, fixed_y,
         state_dict['save_num'] = (state_dict['save_num'] + 1) % config['num_save_copies']
 
     # Use EMA G for samples or non-EMA?
-    which_G = G_ema if config['ema'] and config['use_ema'] else G
+    G_func = G_ema if config['ema'] and config['use_ema'] else G
 
     # Accumulate standing statistics?
     if config['accumulate_stats']:
@@ -124,19 +123,16 @@ def save_and_sample(G, D, G_ema, z_, y_, fixed_z, fixed_y,
 
     # Save a random sample sheet with fixed z and y
     with torch.no_grad():
-        if config['parallel']:
-            fixed_Gz = nn.parallel.data_parallel(which_G, (fixed_z, which_G.shared(fixed_y)))
-        else:
-            fixed_Gz = which_G(fixed_z, which_G.shared(fixed_y))
-    if not os.path.isdir('%s/%s' % (config['samples_root'], experiment_name)):
-        os.mkdir('%s/%s' % (config['samples_root'], experiment_name))
-    image_filename = '%s/%s/fixed_samples%d.jpg' % (config['samples_root'],
-                                                    experiment_name,
-                                                    state_dict['itr'])
+        G_func.to(fixed_z.device)
+        fixed_Gz = G_func(fixed_z, G_func.shared(fixed_y))
+    sample_dir = os.path.join(config['samples_root'], experiment_name)
+    os.makedirs(sample_dir, exist_ok=True)
+    image_filename = os.path.join(sample_dir, f'fixed_sample{state_dict["itr"]}')
     torchvision.utils.save_image(fixed_Gz.float().cpu(), image_filename,
                                  nrow=int(fixed_Gz.shape[0] ** 0.5), normalize=True)
+
     # For now, every time we save, also save sample sheets
-    utils.sample_sheet(which_G,
+    utils.sample_sheet(G_func,
                        classes_per_sheet=cfg.classes_per_sheet_dict[config['dataset']],
                        num_classes=config['n_classes'],
                        samples_per_class=10, parallel=config['parallel'],
@@ -146,7 +142,7 @@ def save_and_sample(G, D, G_ema, z_, y_, fixed_z, fixed_y,
                        z_=z_)
     # Also save interp sheets
     for fix_z, fix_y in zip([False, False, True], [False, True, False]):
-        utils.interp_sheet(which_G,
+        utils.interp_sheet(G_func,
                            num_per_sheet=16,
                            num_midpoints=8,
                            num_classes=config['n_classes'],
@@ -174,14 +170,15 @@ def test(G, D, G_ema, z_, y_, state_dict, config, sample, get_inception_metrics,
     IS_mean, IS_std, FID = get_inception_metrics(sample,
                                                  config['num_inception_images'],
                                                  num_splits=10)
-    print('Itr %d: PYTORCH UNOFFICIAL Inception Score is %3.3f +/- %3.3f, PYTORCH UNOFFICIAL FID is %5.4f' %
-          (state_dict['itr'], IS_mean, IS_std, FID))
+    print(f'Itr {state_dict["itr"]}: PYTORCH UNOFFICIAL Inception Score is {IS_mean:3.3f} +/- {IS_std:3.3f}, '
+          f'PYTORCH UNOFFICIAL FID is {FID:5.4f}')
+
     # If improved over previous best metric, save approrpiate copy
     if ((config['which_best'] == 'IS' and IS_mean > state_dict['best_IS'])
             or (config['which_best'] == 'FID' and FID < state_dict['best_FID'])):
-        print('%s improved over previous best, saving checkpoint...' % config['which_best'])
+        print(f'{config["which_best"]} improved over previous best, saving checkpoint...')
         utils.save_weights(G, D, state_dict, config['weights_root'],
-                           experiment_name, 'best%d' % state_dict['save_best_num'],
+                           experiment_name, 'best{}'.format(state_dict['save_best_num']),
                            G_ema if config['ema'] else None)
         state_dict['save_best_num'] = (state_dict['save_best_num'] + 1) % config['num_best_copies']
     state_dict['best_IS'] = max(state_dict['best_IS'], IS_mean)
