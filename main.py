@@ -93,7 +93,7 @@ def main_worker(gpu, ngpus_per_node, config):
     experiment_name = (config['experiment_name'] if config['experiment_name']
                        else utils.name_from_config(config))
     # experiment_name += '_{}'.format(config['rank'])
-    print('Experiment name is %s' % experiment_name) if config['rank'] == 0 else None
+    print('Experiment name is {}'.format(experiment_name)) if config['rank'] == 0 else None
 
     # Next, build the model
     G = model.Generator(**config).to(device)

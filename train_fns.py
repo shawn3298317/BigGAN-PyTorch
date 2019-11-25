@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import torchvision
 
+import cfg
 import losses
 import utils
 
@@ -136,7 +137,7 @@ def save_and_sample(G, D, G_ema, z_, y_, fixed_z, fixed_y,
                                  nrow=int(fixed_Gz.shape[0] ** 0.5), normalize=True)
     # For now, every time we save, also save sample sheets
     utils.sample_sheet(which_G,
-                       classes_per_sheet=utils.classes_per_sheet_dict[config['dataset']],
+                       classes_per_sheet=cfg.classes_per_sheet_dict[config['dataset']],
                        num_classes=config['n_classes'],
                        samples_per_class=10, parallel=config['parallel'],
                        samples_root=config['samples_root'],
