@@ -18,6 +18,8 @@ def prepare_parser():
         'Append "_hdf5" to use the hdf5 version for ISLVRC '
         '(default: %(default)s)')
     parser.add_argument(
+        '--resolution', default=128, type=int)
+    parser.add_argument(
         '--augment', action='store_true', default=False,
         help='Augment with random crops and flips (default: %(default)s)')
     parser.add_argument(
@@ -36,10 +38,31 @@ def prepare_parser():
     parser.add_argument(
         '--use_multiepoch_sampler', action='store_true', default=False,
         help='Use the multi-epoch sampler for dataloader? (default: %(default)s)')
+    parser.add_argument(
+        '--world-size', default=-1, type=int,
+        help='number of nodes for distributed training')
+    parser.add_argument(
+        '--rank', default=-1, type=int,
+        help='node rank for distributed training')
+    parser.add_argument(
+        '--dist-url', default='tcp://127.0.0.1:23456', type=str,
+        help='url used to set up distributed training')
+    parser.add_argument(
+        '--dist-backend', default='nccl', type=str,
+        help='distributed backend')
+    parser.add_argument(
+        '--multiprocessing-distributed', action='store_true',
+        help='Use multi-processing distributed training to launch '
+        'N processes per node, which has N GPUs. This is the '
+        'fastest way to use PyTorch for either single node or '
+        'multi node data parallel training')
+    parser.add_argument(
+        '--gpu', default=None, type=int,
+        help='GPU id to use.')
 
     # Model stuff
     parser.add_argument(
-        '--model', type=str, default='BigGAN',
+        '--model', type=str, default='biggan',
         help='Name of the model module (default: %(default)s)')
     parser.add_argument(
         '--G_param', type=str, default='SN',
@@ -465,6 +488,7 @@ def get_root_dirs(name, dataset_type='ImageHDF5', resolution=128, data_root='dat
 
 
 nclass_dict = {
+    'Places365': 365,
     'I32': 1000, 'I32_hdf5': 1000,
     'I64': 1000, 'I64_hdf5': 1000,
     'S128': 1, 'S128_hdf5': 1,
