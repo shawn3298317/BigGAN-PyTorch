@@ -127,7 +127,7 @@ def save_and_sample(G, D, G_ema, z_, y_, fixed_z, fixed_y,
         fixed_Gz = G_func(fixed_z, G_func.shared(fixed_y))
     sample_dir = os.path.join(config['samples_root'], experiment_name)
     os.makedirs(sample_dir, exist_ok=True)
-    image_filename = os.path.join(sample_dir, f'fixed_sample{state_dict["itr"]}')
+    image_filename = os.path.join(sample_dir, f'fixed_sample{state_dict["itr"]}.jpg')
     torchvision.utils.save_image(fixed_Gz.float().cpu(), image_filename,
                                  nrow=int(fixed_Gz.shape[0] ** 0.5), normalize=True)
 
