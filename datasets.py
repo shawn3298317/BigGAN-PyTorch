@@ -26,11 +26,84 @@ except AttributeError:
     torch.hub.HASH_REGEX = re.compile(r'-([a-f0-9]*)\.')
 
 
-def get_data_loaders(dataset, data_root=None, augment=False, batch_size=64,
-                     num_workers=8, shuffle=True, load_in_mem=False, hdf5=False,
-                     pin_memory=True, drop_last=True, start_itr=0,
-                     num_epochs=500, use_multiepoch_sampler=False,
-                     **kwargs):
+def get_dataset(name, root_dir=None, resolution=128, dataset_type='ImageFolder',
+                split='train', transform=None, target_transform=None, load_in_mem=False,
+                download=False):
+
+
+    if dataset_type == 'ImageFolder':
+        # Get torchivision dataset class for desired dataset.
+        dataset_func = getattr(torchvision.datasets, name)
+
+        if name in ['CIFAR10', 'CIFAR100']:
+            kwargs = {'train': True if split == 'train' else False}
+        else:
+            kwargs = {'split': split}
+        if name == 'CelebA':
+            def tf(x):
+                return 0 if target_transform is None else target_transform
+            kwargs = {**kwargs, 'target_transform': tf}
+
+        if transform is None:
+            transform = transforms.Compose([
+                CenterCropLongEdge(),
+                transforms.Resize(resolution),
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, 0.5, 0.5),
+                                     (0.5, 0.5, 0.5))])
+        kwargs = {**kwargs,
+                  'download': download,
+                  'transform': transform}
+
+        # Create dataset class based on config selection.
+        dataset = dataset_func(root=root_dir, **kwargs)
+
+    elif dataset_type == 'ImageHDF5':
+        if download:
+            raise NotImplementedError('Automatic Dataset Download not implemented yet...')
+
+        hdf5_name = '{}-{}.hdf5'.format(name, resolution)
+        hdf5_file = os.path.join(root_dir, hdf5_name)
+        if not os.path.exists(hdf5_file):
+            raise ValueError('Cannot find hdf5 file. You should download it, or create if yourself!')
+
+        def target_transform(x):
+            return 0 if name == 'CelebA' else None
+
+        dataset = ImageHDF5(hdf5_file, load_in_mem=load_in_mem,
+                            target_transform=target_transform)
+
+    return dataset
+
+
+def get_dataloaders(dataset, data_root=None, resolution=128, dataset_type='ImageHDF5',
+                    batch_size=64, num_workers=8, shuffle=True, load_in_mem=False,
+                    pin_memory=True, drop_last=True, distributed=False, **kwargs):
+    root_dir = cfg.get_root_dirs(dataset, dataset_type, resolution,
+                                 data_root=data_root)
+    dataset = get_dataset(name=dataset,
+                          root_dir=root_dir,
+                          resolution=resolution,
+                          dataset_type=dataset_type,
+                          load_in_mem=load_in_mem)
+
+    if distributed:
+        sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+        loader = DataLoader(dataset, batch_size=batch_size,
+                            sampler=sampler, num_workers=num_workers,
+                            pin_memory=pin_memory, drop_last=drop_last)
+    else:
+        loader = DataLoader(dataset, batch_size=batch_size,
+                            shuffle=shuffle, num_workers=num_workers,
+                            pin_memory=pin_memory, drop_last=drop_last)
+    return [loader]
+
+
+def get_data_loaders_old(dataset, data_root=None, augment=False, batch_size=64,
+                         num_workers=8, shuffle=True, load_in_mem=False, hdf5=False,
+                         pin_memory=True, drop_last=True, start_itr=0,
+                         num_epochs=500, use_multiepoch_sampler=False,
+                         **kwargs):
 
     # Convenience function to centralize all data loaders
     # Append /FILENAME.hdf5 to root if using hdf5
@@ -559,9 +632,9 @@ def _make_hdf5(dataloader, root, filename, chunk_size=500, compression=False):
                 f['labels'][-y.shape[0]:] = y
 
 
-def get_dataset(name, root_dir=None, resolution=128, dataset_type='ImageFolder',
-                download=True, split='train', transform=None, target_transform=None,
-                load_in_mem=False):
+def old_old_get_dataset(name, root_dir=None, resolution=128, dataset_type='ImageFolder',
+                        download=True, split='train', transform=None, target_transform=None,
+                        load_in_mem=False):
     if name == 'Custom':
         pass
 

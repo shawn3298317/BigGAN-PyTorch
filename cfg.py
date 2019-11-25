@@ -1,7 +1,10 @@
+import os
 from argparse import ArgumentParser
+from collections import defaultdict
+
 import torch.nn as nn
 
-from data import datasets as dset
+import datasets as dset
 
 
 def prepare_parser():
@@ -445,6 +448,21 @@ root_dict = {
     'B128': 'buildings_hq', 'B128_hdf5': 'B128.hdf5',
     'B256': 'buildings_hq', 'B256_hdf5': 'B256.hdf5',
     'C10': 'cifar', 'C100': 'cifar'}
+
+
+def get_root_dirs(name, dataset_type='ImageHDF5', resolution=128, data_root='data'):
+    root_dirs = {
+        'ImageNet': {
+            'ImageHDF5': defaultdict(lambda: os.path.join(data_root, 'ImageNet'), {}),
+            'ImageFolder': defaultdict(lambda: os.path.join(data_root, 'ImageNet/train'), {}),
+        },
+        'Places365': {
+            'ImageHDF5': defaultdict(lambda: os.path.join(data_root, 'Places365'), {}),
+            'ImageFolder': defaultdict(lambda: os.path.join(data_root, 'Places365/train'), {}),
+        }
+    }
+    return root_dirs[name][dataset_type][resolution]
+
 
 nclass_dict = {
     'I32': 1000, 'I32_hdf5': 1000,
