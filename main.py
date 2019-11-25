@@ -163,9 +163,8 @@ def main_worker(gpu, ngpus_per_node, config):
     # Prepare loggers for stats; metrics holds test metrics,
     # lmetrics holds any desired training metrics.
     if config['rank'] == 0:
-        test_metrics_fname = '%s/%s_log.jsonl' % (config['logs_root'],
-                                                  experiment_name)
-        train_metrics_fname = '%s/%s' % (config['logs_root'], experiment_name)
+        test_metrics_fname = os.path.join(config['logs_root'], f'{experiment_name}_log.jsonl')
+        train_metrics_fname = os.path.join(config['logs_root'], experiment_name)
         print('Inception Metrics will be saved to {}'.format(test_metrics_fname))
         test_log = utils.MetricsLogger(test_metrics_fname,
                                        reinitialize=(not config['resume']))
@@ -220,7 +219,7 @@ def main_worker(gpu, ngpus_per_node, config):
                                    else G),
                                z_=z_, y_=y_, config=config)
 
-    print('Beginning training at epoch %d...' % state_dict['epoch']) if config['rank'] == 0 else None
+    print('Beginning training at epoch {}...'.format(state_dict['epoch'])) if config['rank'] == 0 else None
     # Train for specified number of epochs, although we mostly track G iterations.
     for epoch in range(state_dict['epoch'], config['num_epochs']):
         # Which progressbar to use? TQDM or my own?
