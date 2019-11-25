@@ -134,4 +134,4 @@ dmypy.json
 
 tests
 dev.py
-.gitignore
+data

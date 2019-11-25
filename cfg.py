@@ -428,22 +428,22 @@ imsize_dict = {
     'C10': 32, 'C100': 32}
 
 root_dict = {
-    'I32': 'ImageNet/train', 'I32_hdf5': 'ILSVRC32.hdf5',
+    # Imagenet
+    'I32': 'ImageNet/train', 'I32_hdf5': 'I32.hdf5',
     'I64': 'ImageNet/train', 'I64_hdf5': 'I64.hdf5',
-    'P64': 'Places365/train', 'P64_hdf5': 'P64.hdf5',
     'I128': 'ImageNet/train', 'I128_hdf5': 'I128.hdf5',
-    'S128': 'satellite_images', 'S128_hdf5': 'S128.hdf5',
-    'S256': 'satellite_images', 'S256_hdf5': 'S256.hdf5',
-    'I256': 'ImageNet/train', 'I256_hdf5': 'ILSVRC256.hdf5',
-    'P128': 'Places365/train', 'P128_hdf5': 'P128.hdf5',
-    'P256': 'Places365/train', 'P256_hdf5': 'P256.hdf5',
+    'I256': 'ImageNet/train', 'I256_hdf5': 'I256.hdf5',
+    # Places365
+    'P64': 'Places365/train', 'P64_hdf5': 'Places365/Places365-64.hdf5',
+    'P128': 'Places365/train', 'P128_hdf5': 'Places365/Places365-128.hdf5',
+    'P256': 'Places365/train', 'P256_hdf5': 'Places365/Places365-256.hdf5',
+    'P128-Challenge': 'Places365-Challenge/train',
+    'P256-Challenge': 'Places365-Challenge/train',
+    'P128-Challenge_hdf5': 'Places365/Places365-128-Challenge.hdf5',
+    'P256-Challenge_hdf5': 'Places365/Places365-256-Challenge.hdf5',
     'B64': 'buildings_hq', 'B64_hdf5': 'B64.hdf5',
     'B128': 'buildings_hq', 'B128_hdf5': 'B128.hdf5',
     'B256': 'buildings_hq', 'B256_hdf5': 'B256.hdf5',
-    'P128-Challenge': 'Places365-Challenge/train',
-    'P128-Challenge_hdf5': 'P128-Challenge.hdf5',
-    'P256-Challenge': 'Places365-Challenge/train',
-    'P256-Challenge_hdf5': 'P256-Challenge.hdf5',
     'C10': 'cifar', 'C100': 'cifar'}
 
 nclass_dict = {
