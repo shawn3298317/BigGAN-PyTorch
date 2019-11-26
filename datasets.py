@@ -1,10 +1,13 @@
 import errno
+import functools
 import os
 import pickle
 import re
 import sys
 import tarfile
 import warnings
+
+from operator import add
 
 import h5py as h5
 import numpy as np
@@ -29,6 +32,10 @@ except AttributeError:
 def get_dataset(name, root_dir=None, resolution=128, dataset_type='ImageFolder',
                 split='train', transform=None, target_transform=None, load_in_mem=False,
                 download=False):
+
+    if name == 'Hybrid':
+        return get_hybrid_dataset(root_dir=root_dir, resolution=resolution,
+                                  dataset_type=dataset_type, load_in_mem=load_in_mem)
 
     if dataset_type == 'ImageFolder':
         # Get torchivision dataset class for desired dataset.
@@ -68,8 +75,22 @@ def get_dataset(name, root_dir=None, resolution=128, dataset_type='ImageFolder',
 
         dataset = ImageHDF5(hdf5_file, load_in_mem=load_in_mem,
                             target_transform=target_transform)
-
     return dataset
+
+
+def get_hybrid_dataset(root_dir=None, resolution=128, dataset_type='ImageHDF5', load_in_mem=False):
+    imagenet_root = cfg.get_root_dirs('ImageNet', dataset_type=dataset_type,
+                                      resolution=resolution, data_root=root_dir)
+    places365_root = cfg.get_root_dirs('Places365', dataset_type=dataset_type,
+                                       resolution=resolution, data_root=root_dir)
+    imagenet_dataset = get_dataset('ImageNet', resolution=resolution,
+                                   dataset_type=dataset_type, load_in_mem=load_in_mem,
+                                   root_dir=imagenet_root)
+    placess365_dataset = get_dataset('Places365', resolution=resolution,
+                                     dataset_type=dataset_type, load_in_mem=load_in_mem,
+                                     target_transform=functools.partial(add, 1000),
+                                     root_dir=places365_root)
+    return torch.utils.data.ConcatDataset((imagenet_dataset, placess365_dataset))
 
 
 def get_dataloaders(dataset, data_root=None, resolution=128, dataset_type='ImageHDF5',
