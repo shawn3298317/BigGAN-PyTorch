@@ -477,14 +477,11 @@ def interp_sheet(G, num_per_sheet, num_midpoints, num_classes, parallel,
     if G.fp16:
         zs = zs.half()
     with torch.no_grad():
-        if parallel:
-            out_ims = nn.parallel.data_parallel(G, (zs, ys)).data.cpu()
-        else:
-            out_ims = G(zs, ys).data.cpu()
+        G.to(zs.device)
+        out_ims = G(zs, ys).data.cpu()
     interp_style = '' + ('Z' if not fix_z else '') + ('Y' if not fix_y else '')
-    image_filename = '%s/%s/%d/interp%s%d.jpg' % (samples_root, experiment_name,
-                                                  folder_number, interp_style,
-                                                  sheet_number)
+    image_filename = os.path.join(samples_root, experiment_name, str(folder_number),
+                                  f'interp{interp_style}{sheet_number}.jpg')
     torchvision.utils.save_image(out_ims, image_filename,
                                  nrow=num_midpoints + 2, normalize=True)
 
