@@ -86,7 +86,7 @@ def run(config):
     out = f'{config["pretrained"]} model evaluated on {dataset_name} has IS of {IS_mean:5.5f} +/- {IS_std:5.5f}'
     print(out)
     fname = f'{dataset_name}_{config["pretrained"]}_inception_scores.txt'
-    with open(fname, 'w') as f:
+    with open(os.path.join(config['data_root'], config['dataset'], fname), 'w') as f:
         f.write(out)
 
     # Prepare mu and sigma, save to disk. Remove "hdf5" by default
