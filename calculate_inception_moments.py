@@ -7,12 +7,14 @@
  estimated as it is label-ordered. By default, the data is not shuffled
  so as to reduce non-determinism. '''
 from argparse import ArgumentParser
+import os
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 
+import datasets
 import inception_utils
 import utils
 
@@ -24,6 +26,7 @@ def prepare_parser():
         '--dataset', type=str, default='I128_hdf5',
         help='Which Dataset to train on, out of I128, I256, C10, C100...'
         'Append _hdf5 to use the hdf5 version of the dataset. (default: %(default)s)')
+    parser.add_argument('--resolution', default=128, type=int)
     parser.add_argument(
         '--data_root', type=str, default='data',
         help='Default location where data is stored (default: %(default)s)')
@@ -45,16 +48,23 @@ def prepare_parser():
     parser.add_argument(
         '--seed', type=int, default=0,
         help='Random seed to use.')
+    parser.add_argument(
+        '--pretrained', type=str, default='imagenet',
+    )
     return parser
 
 
 def run(config):
     # Get loader
+    config['gpu'] = None
     config['drop_last'] = False
-    loaders = utils.get_data_loaders(**config)
+    config['distributed'] = False
+    # loaders = utils.get_data_loaders(**config)
+    loaders = datasets.get_dataloaders(**config)
+    dataset_name = f'{config["dataset"]}-{config["resolution"]}'
 
     # Load inception net
-    net = inception_utils.load_inception_net(parallel=config['parallel'])
+    net = inception_utils.load_inception_net(config)
     pool, logits, labels = [], [], []
     device = 'cuda'
     for i, (x, y) in enumerate(tqdm(loaders[0])):
@@ -73,13 +83,20 @@ def run(config):
     # Calculate inception metrics and report them
     print('Calculating inception metrics...')
     IS_mean, IS_std = inception_utils.calculate_inception_score(logits)
-    print('Training data from dataset %s has IS of %5.5f +/- %5.5f' % (config['dataset'], IS_mean, IS_std))
+    out = f'{config["pretrained"]} model evaluated on {dataset_name} has IS of {IS_mean:5.5f} +/- {IS_std:5.5f}'
+    print(out)
+    fname = f'{dataset_name}_{config["pretrained"]}_inception_scores.txt'
+    with open(fname, 'w') as f:
+        f.write(out)
+
     # Prepare mu and sigma, save to disk. Remove "hdf5" by default
     # (the FID code also knows to strip "hdf5")
     print('Calculating means and covariances...')
     mu, sigma = np.mean(pool, axis=0), np.cov(pool, rowvar=False)
     print('Saving calculated means and covariances to disk...')
-    np.savez(config['dataset'].strip('_hdf5') + '_inception_moments.npz', **{'mu': mu, 'sigma': sigma})
+    fname = f'{dataset_name}_{config["pretrained"]}_inception_moments.npz'
+    output_name = os.path.join(config['data_root'], config['dataset'], fname)
+    np.savez(output_name, **{'mu': mu, 'sigma': sigma, 'IS_mean': IS_mean, 'IS_std': IS_std})
 
 
 def main():

@@ -405,36 +405,36 @@ def add_sample_parser(parser):
 
 
 # Convenience dicts
-dset_dict = {
-    'I32': dset.ImageFolder,
-    'I64': dset.ImageFolder,
-    'I128': dset.ImageFolder,
-    'I256': dset.ImageFolder,
-    'S128': dset.SingleImageFolder,
-    'S256': dset.SingleImageFolder,
-    'P64': dset.ImageFolder,
-    'P64_hdf5': dset.ImageHDF5,
-    'P128': dset.ImageFolder,
-    'P256': dset.ImageFolder,
-    'B64': dset.ImageFolder,
-    'B128': dset.ImageFolder,
-    'B256': dset.ImageFolder,
-    'P128-Challenge': dset.ImageFolder,
-    'P256-Challenge': dset.ImageFolder,
-    'I32_hdf5': dset.ImageHDF5,
-    'I64_hdf5': dset.ImageHDF5,
-    'I128_hdf5': dset.ImageHDF5,
-    'I256_hdf5': dset.ImageHDF5,
-    'S128_hdf5': dset.ImageHDF5,
-    'S256_hdf5': dset.ImageHDF5,
-    'P128_hdf5': dset.ImageHDF5,
-    'P256_hdf5': dset.ImageHDF5,
-    'B64_hdf5': dset.ImageHDF5,
-    'B128_hdf5': dset.ImageHDF5,
-    'B256_hdf5': dset.ImageHDF5,
-    'P128-Challenge_hdf5': dset.ImageHDF5,
-    'P256-Challenge_hdf5': dset.ImageHDF5,
-    'C10': dset.CIFAR10, 'C100': dset.CIFAR100}
+# dset_dict = {
+#     'I32': dset.ImageFolder,
+#     'I64': dset.ImageFolder,
+#     'I128': dset.ImageFolder,
+#     'I256': dset.ImageFolder,
+#     'S128': dset.SingleImageFolder,
+#     'S256': dset.SingleImageFolder,
+#     'P64': dset.ImageFolder,
+#     'P64_hdf5': dset.ImageHDF5,
+#     'P128': dset.ImageFolder,
+#     'P256': dset.ImageFolder,
+#     'B64': dset.ImageFolder,
+#     'B128': dset.ImageFolder,
+#     'B256': dset.ImageFolder,
+#     'P128-Challenge': dset.ImageFolder,
+#     'P256-Challenge': dset.ImageFolder,
+#     'I32_hdf5': dset.ImageHDF5,
+#     'I64_hdf5': dset.ImageHDF5,
+#     'I128_hdf5': dset.ImageHDF5,
+#     'I256_hdf5': dset.ImageHDF5,
+#     'S128_hdf5': dset.ImageHDF5,
+#     'S256_hdf5': dset.ImageHDF5,
+#     'P128_hdf5': dset.ImageHDF5,
+#     'P256_hdf5': dset.ImageHDF5,
+#     'B64_hdf5': dset.ImageHDF5,
+#     'B128_hdf5': dset.ImageHDF5,
+#     'B256_hdf5': dset.ImageHDF5,
+#     'P128-Challenge_hdf5': dset.ImageHDF5,
+#     'P256-Challenge_hdf5': dset.ImageHDF5,
+#     'C10': dset.CIFAR10, 'C100': dset.CIFAR100}
 
 imsize_dict = {
     'I32': 32, 'I32_hdf5': 32,
@@ -491,7 +491,9 @@ def get_root_dirs(name, dataset_type='ImageHDF5', resolution=128, data_root='dat
 
 
 nclass_dict = {
+    'ImageNet': 1000,
     'Places365': 365,
+    'Hybrid': 1365,
     'I32': 1000, 'I32_hdf5': 1000,
     'I64': 1000, 'I64_hdf5': 1000,
     'S128': 1, 'S128_hdf5': 1,
@@ -511,6 +513,7 @@ nclass_dict = {
 # Number of classes to put per sample sheet
 classes_per_sheet_dict = {
     'Places365': 20,
+    'Hybrid': 20,
     'I32': 50, 'I32_hdf5': 50,
     'I64': 20, 'I64_hdf5': 20,
     'I128': 20, 'I128_hdf5': 20,
