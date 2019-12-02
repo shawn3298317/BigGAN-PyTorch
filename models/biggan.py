@@ -16,7 +16,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.nn import init
 
-# from . import layers
 import layers
 
 
@@ -581,12 +580,32 @@ model_weights = {
     }
 }
 
-root_url = 'http://ganocracy.csail.mit.edu/models'
+root_url = 'http://pretorched-x.csail.mit.edu/gans/BigGAN'
+ganocracy_root_url = 'http://ganocracy.csail.mit.edu/models'
 tfhub_urls = {
     'imagenet': {
-        128: os.path.join(root_url, 'tfbiggan_128-13f17ff2.pth'),
-        256: os.path.join(root_url, 'tfbiggan_256-a4cf3382.pth'),
-        512: os.path.join(root_url, 'tfbiggan_512-447bfb81.pth'),
+        128: os.path.join(ganocracy_root_url, 'tfbiggan_128-13f17ff2.pth'),
+        256: os.path.join(ganocracy_root_url, 'tfbiggan_256-a4cf3382.pth'),
+        512: os.path.join(ganocracy_root_url, 'tfbiggan_512-447bfb81.pth'),
+    }
+}
+
+model_urls = {
+    'places365': {
+        128: {
+            'D': os.path.join(root_url, 'biggan128_D_places365-8afb2a4d.pth'),
+            'G': os.path.join(root_url, 'biggan128_G_places365-43cd58c0.pth'),
+            'G_ema': os.path.join(root_url, 'biggan128_G_ema_places365-78c78abe.pth'),
+            'state_dict': os.path.join(root_url, 'biggan128_state_dict_places365-3d39f6bb.pth')
+        },
+    },
+    'imagenet': {
+        128: {
+            'D': os.path.join(root_url, 'biggan128_D_imagenet-9fd72e50.pth'),
+            'G': os.path.join(root_url, 'biggan128_G_imagenet-94e0b761.pth'),
+            'G_ema': os.path.join(root_url, 'biggan128_G_ema_imagenet-c9706dfb.pth'),
+            'state_dict': os.path.join(root_url, 'biggan128_state_dict_imagenet-4aad5089.pth'),
+        },
     }
 }
 
@@ -613,17 +632,23 @@ def BigGAN(resolution=256, pretrained='imagenet', load_ema=True, tfhub=True):
         'n_classes': 1000
     }
 
-    if tfhub and pretrained is not None:
+    version = 'G_ema' if load_ema else 'G'
+
+    if tfhub and pretrained == 'imagenet':
         url = tfhub_urls[pretrained][resolution]
         weights = torch.hub.load_state_dict_from_url(url)
         G = Generator(**config)
         G.load_state_dict(weights, strict=False)
         G.eval()
         return G
-    version = 'G_ema' if load_ema else 'G'
-    state_dict = model_weights[pretrained][resolution]['state_dict']
-    config = torch.load(state_dict)['config']
+    elif pretrained is not None:
+        url = model_urls[pretrained][resolution][version]
+        sd_url = model_urls[pretrained][resolution]['state_dict']
+        weights = torch.hub.load_state_dict_from_url(url)
+        state_dict = torch.hub.load_state_dict_from_url(sd_url)
+        G = Generator(**state_dict['config'])
+        G.load_state_dict(weights, strict=False)
+        G.eval()
+        return G
     G = Generator(**config)
-    weights = model_weights[pretrained][resolution][version]
-    G.load_state_dict(torch.load(weights))
     return G
