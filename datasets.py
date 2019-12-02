@@ -33,7 +33,7 @@ def get_dataset(name, root_dir=None, resolution=128, dataset_type='ImageFolder',
                 split='train', transform=None, target_transform=None, load_in_mem=False,
                 download=False):
 
-    if name == 'Hybrid':
+    if name == 'Hybrid1365':
         return get_hybrid_dataset(root_dir=root_dir, resolution=resolution,
                                   dataset_type=dataset_type, load_in_mem=load_in_mem)
 

@@ -483,7 +483,7 @@ def get_root_dirs(name, dataset_type='ImageHDF5', resolution=128, data_root='dat
             'ImageHDF5': defaultdict(lambda: os.path.join(data_root, 'Places365'), {}),
             'ImageFolder': defaultdict(lambda: os.path.join(data_root, 'Places365/train'), {}),
         },
-        'Hybrid': {
+        'Hybrid1365': {
             'ImageHDF5': defaultdict(lambda: data_root, {}),
         }
     }
@@ -493,7 +493,7 @@ def get_root_dirs(name, dataset_type='ImageHDF5', resolution=128, data_root='dat
 nclass_dict = {
     'ImageNet': 1000,
     'Places365': 365,
-    'Hybrid': 1365,
+    'Hybrid1365': 1365,
     'I32': 1000, 'I32_hdf5': 1000,
     'I64': 1000, 'I64_hdf5': 1000,
     'S128': 1, 'S128_hdf5': 1,

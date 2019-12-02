@@ -30,7 +30,7 @@ class WrapInception(nn.Module):
     def __init__(self, net, pretrained='imagenet'):
         super().__init__()
         self.net = net
-        if pretrained == 'places365':
+        if pretrained in ['places365', 'hybrid1365']:
             self.mean = P(torch.tensor([0.5, 0.5, 0.5]).view(1, -1, 1, 1),
                           requires_grad=False)
             self.std = P(torch.tensor([0.5, 0.5, 0.5]).view(1, -1, 1, 1),
@@ -268,7 +268,7 @@ def accumulate_inception_activations(sample, net, num_inception_images=50000):
 def load_inception_net(config):
     """Load and wrap the Inception model."""
     dataset = config['pretrained']
-    nc = {'imagenet': 1000, 'places365': 365}.get(dataset, 1000)
+    nc = {'imagenet': 1000, 'places365': 365, 'hybrid1365': 1365}.get(dataset, 1000)
     inception_model = pretorched.inceptionv3(num_classes=nc, pretrained=dataset)
     inception_model.fc = inception_model.last_linear
     inception_model = WrapInception(inception_model.eval(), pretrained=dataset).cuda()

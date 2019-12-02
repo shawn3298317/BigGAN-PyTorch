@@ -16,7 +16,6 @@ from tqdm import tqdm
 
 import datasets
 import inception_utils
-import utils
 
 
 def prepare_parser():
