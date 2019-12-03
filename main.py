@@ -191,6 +191,8 @@ def main_worker(gpu, ngpus_per_node, config):
     inception_root_dir = cfg.get_root_dirs(dataset,
                                            resolution=config['resolution'],
                                            data_root=config['data_root'])
+    if dataset == 'Hybrid1365':
+        inception_root_dir = os.path.join(inception_root_dir, 'Hybrid1365')
     inception_filename = os.path.join(inception_root_dir, fname)
     get_inception_metrics = inception_utils.prepare_inception_metrics(
         inception_filename, config, config['no_fid'])

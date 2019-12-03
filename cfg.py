@@ -513,8 +513,8 @@ nclass_dict = {
 # Number of classes to put per sample sheet
 classes_per_sheet_dict = {
     'Places365': 20,
-    'Hybrid': 20,
-    'I32': 50, 'I32_hdf5': 50,
+    'Hybrid1365': 20,
+    'I32':50, 'I32_hdf5': 50,
     'I64': 20, 'I64_hdf5': 20,
     'I128': 20, 'I128_hdf5': 20,
     'I256': 20, 'I256_hdf5': 20,
