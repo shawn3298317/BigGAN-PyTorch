@@ -478,7 +478,8 @@ def interp_sheet(G, num_per_sheet, num_midpoints, num_classes, parallel,
         zs = zs.half()
     with torch.no_grad():
         G.to(zs.device)
-        out_ims = G(zs, ys).data.cpu()
+        out_ims = elastic_gan(G, zs, ys).data.cpu()
+        # out_ims = G(zs, ys).data.cpu()
     interp_style = '' + ('Z' if not fix_z else '') + ('Y' if not fix_y else '')
     image_filename = os.path.join(samples_root, experiment_name, str(folder_number),
                                   f'interp{interp_style}{sheet_number}.jpg')
@@ -727,3 +728,25 @@ class Adam16(Optimizer):
                 p.data = state['fp32_p'].half()
 
         return loss
+
+
+def elastic_gan(model, *input):
+    error_msg = 'CUDA out of memory.'
+
+    def chunked_forward(f, *x, chunk_size=1):
+        out = []
+        for xcs in zip(*[xc.chunk(chunk_size) for xc in x]):
+            o = f(*xcs).detach()
+            out.append(o)
+        return torch.cat(out)
+
+    cs, fit = 1, False
+    while not fit:
+        try:
+            return chunked_forward(model, *input, chunk_size=cs)
+        except RuntimeError as e:
+            if error_msg in str(e):
+                torch.cuda.empty_cache()
+                cs *= 2
+            else:
+                raise e
