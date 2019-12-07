@@ -515,6 +515,7 @@ def name_from_config(config):
         item for item in [
             'Big%s' % config['which_train_fn'],
             config['dataset'],
+            str(config['resolution']),
             config['model'] if config['model'] != 'BigGAN' else None,
             'seed%d' % config['seed'],
             'Gch%d' % config['G_ch'],
