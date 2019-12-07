@@ -212,6 +212,7 @@ def prepare_parser():
         '--num_standing_accumulations', type=int, default=16,
         help='Number of forward passes to use in accumulating standing stats? '
         '(default: %(default)s)')
+    parser.add_argument('--use_torch_FID', action='store_true', default=False)
 
     # Bookkeping stuff
     parser.add_argument(
@@ -512,7 +513,7 @@ nclass_dict = {
 
 # Number of classes to put per sample sheet
 classes_per_sheet_dict = {
-    'Places365': 20,
+    'Places365': 16,
     'Hybrid1365': 20,
     'I32':50, 'I32_hdf5': 50,
     'I64': 20, 'I64_hdf5': 20,

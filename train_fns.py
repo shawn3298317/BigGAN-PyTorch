@@ -161,7 +161,7 @@ def save_and_sample(G, D, G_ema, z_, y_, fixed_z, fixed_y,
 
 
 def test(G, D, G_ema, z_, y_, state_dict, config, sample, get_inception_metrics,
-         experiment_name, test_log):
+         experiment_name, test_log, use_torch=True):
     print('Gathering inception metrics...')
     if config['accumulate_stats']:
         utils.accumulate_standing_stats(G_ema if config['ema'] and config['use_ema'] else G,
@@ -169,7 +169,8 @@ def test(G, D, G_ema, z_, y_, state_dict, config, sample, get_inception_metrics,
                                         config['num_standing_accumulations'])
     IS_mean, IS_std, FID = get_inception_metrics(sample,
                                                  config['num_inception_images'],
-                                                 num_splits=10)
+                                                 num_splits=10,
+                                                 use_torch=use_torch)
     print(f'Itr {state_dict["itr"]}: PYTORCH UNOFFICIAL Inception Score is {IS_mean:3.3f} +/- {IS_std:3.3f}, '
           f'PYTORCH UNOFFICIAL FID is {FID:5.4f}')
 
