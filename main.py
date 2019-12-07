@@ -83,7 +83,8 @@ def main_worker(gpu, ngpus_per_node, config):
         if config['multiprocessing_distributed']:
             # For multiprocessing distributed training, rank needs to be the
             # global rank among all the processes
-            # config['rank'] = int(os.environ.get('OMPI_COMM_WORLD_RANK'))
+            if config['rank'] == -1:
+                config['rank'] = int(os.environ.get('OMPI_COMM_WORLD_RANK'))
             config['rank'] = config['rank'] * ngpus_per_node + gpu
         dist.init_process_group(backend=config['dist_backend'], init_method=config['dist_url'],
                                 world_size=config['world_size'], rank=config['rank'])
