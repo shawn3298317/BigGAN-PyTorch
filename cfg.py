@@ -213,6 +213,7 @@ def prepare_parser():
         help='Number of forward passes to use in accumulating standing stats? '
         '(default: %(default)s)')
     parser.add_argument('--use_torch_FID', action='store_true', default=False)
+    parser.add_argument('--pretrained', default=None, type=str)
 
     # Bookkeping stuff
     parser.add_argument(
@@ -362,6 +363,7 @@ def prepare_parser():
         '--sv_log_interval', type=int, default=10,
         help='Iteration interval for logging singular values '
         ' (default: %(default)s)')
+    parser.add_argument('--debug', action='store_true', default=False)
 
     return parser
 
@@ -484,6 +486,10 @@ def get_root_dirs(name, dataset_type='ImageHDF5', resolution=128, data_root='dat
             'ImageHDF5': defaultdict(lambda: os.path.join(data_root, 'Places365'), {}),
             'ImageFolder': defaultdict(lambda: os.path.join(data_root, 'Places365/train'), {}),
         },
+        'Places365-Challenge': {
+            'ImageHDF5': defaultdict(lambda: os.path.join(data_root, 'Places365'), {}),
+            'ImageFolder': defaultdict(lambda: os.path.join(data_root, 'Places365/train'), {}),
+        },
         'Hybrid1365': {
             'ImageHDF5': defaultdict(lambda: data_root, {}),
         }
@@ -494,6 +500,7 @@ def get_root_dirs(name, dataset_type='ImageHDF5', resolution=128, data_root='dat
 nclass_dict = {
     'ImageNet': 1000,
     'Places365': 365,
+    'Places365-Challenge': 365,
     'Hybrid1365': 1365,
     'I32': 1000, 'I32_hdf5': 1000,
     'I64': 1000, 'I64_hdf5': 1000,
@@ -514,8 +521,9 @@ nclass_dict = {
 # Number of classes to put per sample sheet
 classes_per_sheet_dict = {
     'Places365': 16,
+    'Places365-Challenge': 16,
     'Hybrid1365': 20,
-    'I32':50, 'I32_hdf5': 50,
+    'I32': 50, 'I32_hdf5': 50,
     'I64': 20, 'I64_hdf5': 20,
     'I128': 20, 'I128_hdf5': 20,
     'I256': 20, 'I256_hdf5': 20,

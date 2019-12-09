@@ -52,7 +52,8 @@ def GAN_training_function(G, D, GD, z_, y_, ema, state_dict, config):
             # Optionally apply ortho reg in D
             if config['D_ortho'] > 0.0:
                 # Debug print to indicate we're using ortho reg in D.
-                print('using modified ortho reg in D')
+                if config['debug']:
+                    print('using modified ortho reg in D')
                 utils.ortho(D, config['D_ortho'])
 
             D.optim.step()
@@ -75,7 +76,8 @@ def GAN_training_function(G, D, GD, z_, y_, ema, state_dict, config):
 
         # Optionally apply modified ortho reg in G
         if config['G_ortho'] > 0.0:
-            print('using modified ortho reg in G')  # Debug print to indicate we're using ortho reg in G
+            if config['debug']:
+                print('using modified ortho reg in G')  # Debug print to indicate we're using ortho reg in G
             # Don't ortho reg shared, it makes no sense. Really we should blacklist any embeddings for this
             utils.ortho(G, config['G_ortho'],
                         blacklist=[param for param in G.shared.parameters()])

@@ -40,7 +40,8 @@ def run(config):
     config['n_classes'] = cfg.nclass_dict[config['dataset']]
     config['G_activation'] = cfg.activation_dict[config['G_nl']]
     config['D_activation'] = cfg.activation_dict[config['D_nl']]
-    config['pretrained'] = config['dataset'].lower()
+    if config['pretrained'] is None:
+        config['pretrained'] = config['dataset'].lower()
 
     # By default, skip init if resuming training.
     if config['resume']:
