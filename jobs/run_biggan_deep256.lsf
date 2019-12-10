@@ -1,0 +1,81 @@
+#BSUB -L /bin/bash
+#BSUB -J "BigGANDeep256-Places365"
+#BSUB -o "runs/BigGANDeep256-Places365.%J"
+#BSUB -n 16
+#BSUB -R "span[ptile=1]"
+#BSUB -gpu "num=4"
+#BSUB -q "normal"
+#BSUB -x
+
+#
+# Setup User Environement (Python, WMLCE virtual environment etc)
+#
+HOME2=/nobackup/users/$(whoami)
+PYTHON_VIRTUAL_ENVIRONMENT=wmlce-1.6.2
+CONDA_ROOT=$HOME2/anaconda3
+
+source ${CONDA_ROOT}/etc/profile.d/conda.sh
+conda activate $PYTHON_VIRTUAL_ENVIRONMENT
+export EGO_TOP=/opt/ibm/spectrumcomputing
+
+N=16
+TRAINFILE=$HOME2/trainfile_biggan_deep256
+rm -rf ${TRAINFILE}
+
+cat > set.sh << EoF_s
+#! /bin/sh
+# Set up the GPUs; only one process per node should do this
+if [ \${OMPI_COMM_WORLD_LOCAL_RANK} -eq 0 ]; then
+  #sudo ppc64_cpu --smt=2                 # Set the SMT mode to 2
+  sudo ppc64_cpu --smt=4
+  sudo ppc64_cpu --smt=on
+  ppc64_cpu --smt                        # Verify the SMT mode
+# sudo nvidia-smi -ac 715,1480           # For POWER8+P100
+  sudo nvidia-smi -rac                   # For POWER9+V100
+  sudo nvidia-smi --compute-mode=DEFAULT # Set the compute mode to DEFAULT
+fi
+EoF_s
+chmod +x set.sh
+mpirun --tag-output ./set.sh
+
+# Run the program
+export PAMI_IBV_ADAPTER_AFFINITY=0
+export NCCL_SOCKET_IFNAME=ib
+
+mpirun -np ${N} \
+python $HOME2/BigGAN-PyTorch/main.py \
+    --model biggan_deep \
+    --dataset Places365 --resolution 256 \
+    --shuffle  --num_workers 8 --batch_size 64 \
+    --num_G_accumulations 2 --num_D_accumulations 2 \
+    --num_D_steps 2 --G_lr 2.5e-5 --D_lr 2.5e-5 --D_B2 0.999 --G_B2 0.999 \
+    --G_attn 64 --D_attn 64 \
+    --G_ch 128 --D_ch 128 \
+    --G_depth 2 --D_depth 2 \
+    --G_nl inplace_relu --D_nl inplace_relu \
+    --SN_eps 1e-6 --BN_eps 1e-5 --adam_eps 1e-6 \
+    --G_ortho 1.e-4 \
+    --G_shared \
+    --G_init ortho --D_init ortho \
+    --hier --dim_z 128 --shared_dim 128 \
+    --ema --use_ema --ema_start 20000 --G_eval_mode \
+    --test_every 2000 --save_every 500 --num_best_copies 50 --num_save_copies 2 --seed 0 \
+    --use_multiepoch_sampler --multiprocessing-distributed --dist-backend nccl \
+    --world-size ${N} --dist-url file://${TRAINFILE}
+
+
+
+# Reset the GPUs
+cat > reset.sh << EoF_r
+#! /bin/sh
+
+if [ \${OMPI_COMM_WORLD_LOCAL_RANK} -eq 0 ]; then
+  sudo ppc64_cpu --smt=on                          # SMT mode back to default
+  sudo nvidia-smi -rac                             # Clocks back to defaults
+  sudo nvidia-smi --compute-mode=EXCLUSIVE_PROCESS # Compute mode back to p10 default
+fi
+EoF_r
+chmod +x reset.sh
+mpirun --tag-output ./reset.sh
+
+/bin/rm -f set.sh reset.sh
