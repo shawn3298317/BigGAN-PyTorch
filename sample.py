@@ -1,6 +1,7 @@
 ''' Sample
    This script loads a pretrained net and a weightsfile and sample '''
 import functools
+import os
 
 import numpy as np
 import torch
@@ -8,6 +9,8 @@ import torchvision
 from tqdm import trange
 
 # Import my stuff
+import cfg
+import models
 import inception_utils
 import utils
 
@@ -17,6 +20,8 @@ def run(config):
     state_dict = {'itr': 0, 'epoch': 0, 'save_num': 0, 'save_best_num': 0,
                   'best_IS': 0, 'best_FID': 999999, 'config': config}
 
+    orig_exp_name = config['experiment_name']
+    os.makedirs(os.path.join(config['samples_root'], orig_exp_name), exist_ok=True)
     # Optionally, get the configuration from the state dict. This allows for
     # recovery of the config provided only a state dict and experiment name,
     # and can be convenient for writing less verbose sample shell scripts.
@@ -30,14 +35,18 @@ def run(config):
                 config[item] = state_dict['config'][item]
 
     # update config (see train.py for explanation)
-    config['resolution'] = utils.imsize_dict[config['dataset']]
-    config['n_classes'] = utils.nclass_dict[config['dataset']]
-    config['G_activation'] = utils.activation_dict[config['G_nl']]
-    config['D_activation'] = utils.activation_dict[config['D_nl']]
+    # config['resolution'] = utils.imsize_dict[config['dataset']]
+    config['n_classes'] = cfg.nclass_dict[config['dataset']]
+    config['G_activation'] = cfg.activation_dict[config['G_nl']]
+    config['D_activation'] = cfg.activation_dict[config['D_nl']]
     config = utils.update_config_roots(config)
     config['skip_init'] = True
     config['no_optim'] = True
     device = 'cuda'
+    config['distributed'] = False
+    config['gpu'] = None
+    if config['pretrained'] is None:
+        config['pretrained'] = config['dataset'].lower()
 
     # Seed RNG
     utils.seed_rng(config['seed'])
@@ -46,10 +55,10 @@ def run(config):
     torch.backends.cudnn.benchmark = True
 
     # Import the model--this line allows us to dynamically select different files.
-    model = __import__(config['model'])
+    model = getattr(models, config['model'])
     experiment_name = (config['experiment_name'] if config['experiment_name']
                        else utils.name_from_config(config))
-    print('Experiment name is %s' % experiment_name)
+    print('Experiment name is {}'.format(experiment_name))
 
     G = model.Generator(**config).cuda()
     utils.count_parameters(G)
@@ -58,7 +67,9 @@ def run(config):
     print('Loading weights...')
     # Here is where we deal with the ema--load ema weights or load normal weights
     utils.load_weights(G if not (config['use_ema']) else None, None, state_dict,
-                       config['weights_root'], experiment_name, config['load_weights'],
+                    #    config['weights_root'], experiment_name, config['load_weights'],
+                    #    config['weights_root'], config['experiment_name'], config['load_weights'],
+                       config['weights_root'], orig_exp_name, config['load_weights'],
                        G if config['ema'] and config['use_ema'] else None,
                        strict=False, load_optim=False)
     # Update batch size setting used for G
@@ -93,7 +104,7 @@ def run(config):
         x = np.concatenate(x, 0)[:config['sample_num_npz']]
         y = np.concatenate(y, 0)[:config['sample_num_npz']]
         print('Images shape: %s, Labels shape: %s' % (x.shape, y.shape))
-        npz_filename = '%s/%s/samples.npz' % (config['samples_root'], experiment_name)
+        npz_filename = '%s/%s/samples.npz' % (config['samples_root'], orig_exp_name)
         print('Saving npz to %s...' % npz_filename)
         np.savez(npz_filename, **{'x': x, 'y': y})
 
@@ -104,7 +115,7 @@ def run(config):
                            num_classes=config['n_classes'],
                            samples_per_class=10, parallel=config['parallel'],
                            samples_root=config['samples_root'],
-                           experiment_name=experiment_name,
+                           experiment_name=orig_exp_name,
                            folder_number=config['sample_sheet_folder_num'],
                            z_=z_,)
     # Sample interp sheets
@@ -115,7 +126,7 @@ def run(config):
                                num_classes=config['n_classes'],
                                parallel=config['parallel'],
                                samples_root=config['samples_root'],
-                               experiment_name=experiment_name,
+                               experiment_name=orig_exp_name,
                                folder_number=config['sample_sheet_folder_num'],
                                sheet_number=0,
                                fix_z=fix_z, fix_y=fix_y, device='cuda')
@@ -124,12 +135,24 @@ def run(config):
         print('Preparing random sample sheet...')
         images, labels = sample()
         torchvision.utils.save_image(images.float(),
-                                     '%s/%s/random_samples.jpg' % (config['samples_root'], experiment_name),
+                                     '%s/%s/random_samples.jpg' % (config['samples_root'], orig_exp_name),
                                      nrow=int(G_batch_size**0.5),
                                      normalize=True)
 
     # Get Inception Score and FID
-    get_inception_metrics = inception_utils.prepare_inception_metrics(config['dataset'], config['parallel'], config['no_fid'])
+    dataset = config['dataset']
+    pretrained = config['pretrained']
+    resolution = config['resolution']
+    fname = f'{dataset}-{resolution}_{pretrained}_inception_moments.npz'
+    inception_root_dir = cfg.get_root_dirs(dataset,
+                                           resolution=config['resolution'],
+                                           data_root=config['data_root'])
+    if dataset == 'Hybrid1365':
+        inception_root_dir = os.path.join(inception_root_dir, 'Hybrid1365')
+    inception_filename = os.path.join(inception_root_dir, fname)
+    get_inception_metrics = inception_utils.prepare_inception_metrics(
+        inception_filename, config, config['no_fid'])
+    # get_inception_metrics = inception_utils.prepare_inception_metrics(config['dataset'], config['parallel'], config['no_fid'])
     # Prepare a simple function get metrics that we use for trunc curves
 
     def get_metrics():
@@ -146,29 +169,36 @@ def run(config):
             outstring += 'using %d standing stat accumulations, ' % config['num_standing_accumulations']
         outstring += 'Itr %d: PYTORCH UNOFFICIAL Inception Score is %3.3f +/- %3.3f, PYTORCH UNOFFICIAL FID is %5.4f' % (
             state_dict['itr'], IS_mean, IS_std, FID)
-        print(outstring)
-    if config['sample_inception_metrics']:
-        print('Calculating Inception metrics...')
-        get_metrics()
+        return outstring
 
-    # Sample truncation curve stuff. This is basically the same as the inception metrics code
-    if config['sample_trunc_curves']:
-        start, step, end = [float(item) for item in config['sample_trunc_curves'].split('_')]
-        print('Getting truncation values for variance in range (%3.3f:%3.3f:%3.3f)...' % (start, step, end))
-        for var in np.arange(start, end + step, step):
-            z_.var = var
-            # Optionally comment this out if you want to run with standing stats
-            # accumulated at one z variance setting
-            if config['accumulate_stats']:
-                utils.accumulate_standing_stats(G, z_, y_, config['n_classes'],
-                                                config['num_standing_accumulations'])
-            get_metrics()
+    trunc_file = os.path.join(config['samples_root'], orig_exp_name, f'truncation_curves_{state_dict["itr"]}.txt')
+    with open(trunc_file, 'w') as f:
+        if config['sample_inception_metrics']:
+            print('Calculating Inception metrics...')
+            result = get_metrics()
+            print(result)
+            f.write(result + '\n')
+
+        # Sample truncation curve stuff. This is basically the same as the inception metrics code
+        if config['sample_trunc_curves']:
+            start, step, end = [float(item) for item in config['sample_trunc_curves'].split('_')]
+            print('Getting truncation values for variance in range (%3.3f:%3.3f:%3.3f)...' % (start, step, end))
+            for var in np.arange(start, end + step, step):
+                z_.var = var
+                # Optionally comment this out if you want to run with standing stats
+                # accumulated at one z variance setting
+                if config['accumulate_stats']:
+                    utils.accumulate_standing_stats(G, z_, y_, config['n_classes'],
+                                                    config['num_standing_accumulations'])
+                result = get_metrics()
+                print(result)
+                f.write(result + '\n')
 
 
 def main():
     # parse command line and run
-    parser = utils.prepare_parser()
-    parser = utils.add_sample_parser(parser)
+    parser = cfg.prepare_parser()
+    parser = cfg.add_sample_parser(parser)
     config = vars(parser.parse_args())
     print(config)
     run(config)
