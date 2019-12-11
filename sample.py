@@ -111,7 +111,7 @@ def run(config):
     # Prepare sample sheets
     if config['sample_sheets']:
         print('Preparing conditional sample sheets...')
-        utils.sample_sheet(G, classes_per_sheet=utils.classes_per_sheet_dict[config['dataset']],
+        utils.sample_sheet(G, classes_per_sheet=cfg.classes_per_sheet_dict[config['dataset']],
                            num_classes=config['n_classes'],
                            samples_per_class=10, parallel=config['parallel'],
                            samples_root=config['samples_root'],
