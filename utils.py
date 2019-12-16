@@ -267,11 +267,12 @@ def load_weights(G, D, state_dict, weights_root, experiment_name,
                 torch.load('%s/%s.pth' % (root, join_strings('_', ['D_optim', name_suffix])), map_location='cpu'))
     # Load state dict
     for item in state_dict:
-        state_dict[item] = torch.load('%s/%s.pth' % (root, join_strings('_', ['state_dict', name_suffix])))[item]
+        state_dict[item] = torch.load('%s/%s.pth' % (root, join_strings('_', ['state_dict', name_suffix])), map_location='cpu')[item]
     if G_ema is not None:
         G_ema.load_state_dict(
             torch.load('%s/%s.pth' % (root, join_strings('_', ['G_ema', name_suffix])), map_location='cpu'),
             strict=strict)
+    torch.cuda.empty_cache()
 
 
 ''' MetricsLogger originally stolen from VoxNet source code.

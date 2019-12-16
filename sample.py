@@ -67,8 +67,6 @@ def run(config):
     print('Loading weights...')
     # Here is where we deal with the ema--load ema weights or load normal weights
     utils.load_weights(G if not (config['use_ema']) else None, None, state_dict,
-                    #    config['weights_root'], experiment_name, config['load_weights'],
-                    #    config['weights_root'], config['experiment_name'], config['load_weights'],
                        config['weights_root'], orig_exp_name, config['load_weights'],
                        G if config['ema'] and config['use_ema'] else None,
                        strict=False, load_optim=False)
@@ -84,6 +82,7 @@ def run(config):
     else:
         print('G is in %s mode...' % ('training' if G.training else 'eval'))
 
+    print(config)
     # Sample function
     sample = functools.partial(utils.sample, G=G, z_=z_, y_=y_, config=config)
     if config['accumulate_stats']:
@@ -157,7 +156,8 @@ def run(config):
 
     def get_metrics():
         sample = functools.partial(utils.sample, G=G, z_=z_, y_=y_, config=config)
-        IS_mean, IS_std, FID = get_inception_metrics(sample, config['num_inception_images'], num_splits=10, prints=False)
+        IS_mean, IS_std, FID = get_inception_metrics(sample, config['num_inception_images'],
+                                                     num_splits=10, prints=False, use_torch=config['use_torch_FID'])
         # Prepare output string
         outstring = 'Using %s weights ' % ('ema' if config['use_ema'] else 'non-ema')
         outstring += 'in %s mode, ' % ('eval' if config['G_eval_mode'] else 'training')
