@@ -1,7 +1,7 @@
 #BSUB -L /bin/bash
-#BSUB -J "BigGAN128-Places365"
-#BSUB -o "runs/BigGAN128-Places365.%J"
-#BSUB -n 8
+#BSUB -J "BigGAN256_Gattn128-Places365"
+#BSUB -o "runs/BigGAN256_Gattn128-Places365.%J"
+#BSUB -n 22
 #BSUB -R "span[ptile=1]"
 #BSUB -gpu "num=4"
 #BSUB -q "normal"
@@ -18,8 +18,8 @@ source ${CONDA_ROOT}/etc/profile.d/conda.sh
 conda activate $PYTHON_VIRTUAL_ENVIRONMENT
 export EGO_TOP=/opt/ibm/spectrumcomputing
 
-N=8
-TRAINFILE=$HOME2/trainfile_128
+N=22
+TRAINFILE=$HOME2/trainfile_biggan256
 rm -rf ${TRAINFILE}
 
 cat > set.sh << EoF_s
@@ -42,21 +42,21 @@ export NCCL_SOCKET_IFNAME=ib
 mpirun -np ${N} \
 python $HOME2/BigGAN-PyTorch/main.py \
     --model biggan \
-    --dataset Places365 --resolution 128 \
-    --shuffle  --num_workers 8 --batch_size 256 \
-    --num_G_accumulations 1 --num_D_accumulations 1 \
-    --num_D_steps 2 --G_lr 5e-5 --D_lr 2e-4 --D_B2 0.999 --G_B2 0.999 \
-    --G_attn 64 --D_attn 64 \
+    --dataset Places365 --resolution 256 \
+    --shuffle  --num_workers 8 --batch_size 48 \
+    --num_G_accumulations 2 --num_D_accumulations 2 \
+    --num_D_steps 2 --G_lr 2e-4 --D_lr 5e-5 --D_B2 0.999 --G_B2 0.999 \
+    --G_attn 128 --D_attn 64 \
     --G_nl inplace_relu --D_nl inplace_relu \
     --SN_eps 1e-6 --BN_eps 1e-5 --adam_eps 1e-6 \
-    --G_ortho 0.0 \
+    --G_ortho 1.e-4 \
     --G_shared \
     --G_init ortho --D_init ortho \
-    --hier --dim_z 120 --shared_dim 128 \
+    --hier --dim_z 140 --shared_dim 128 \
     --G_eval_mode \
     --G_ch 96 --D_ch 96 \
-    --cross_replica \
     --ema --use_ema --ema_start 20000 \
+    --resume \
     --test_every 2000 --save_every 500 --num_best_copies 50 --num_save_copies 2 --seed 0 \
     --multiprocessing-distributed \
     --world-size ${N} --dist-url file://${TRAINFILE}
