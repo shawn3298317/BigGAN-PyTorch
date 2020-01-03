@@ -21,7 +21,6 @@ from torchvision import transforms
 from tqdm import tqdm
 
 import cfg
-from utils import MultiEpochSampler
 
 try:
     getattr(torch.hub, 'HASH_REGEX')
