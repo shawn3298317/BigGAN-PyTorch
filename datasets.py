@@ -21,7 +21,6 @@ from torchvision import transforms
 from tqdm import tqdm
 
 import cfg
-# from utils import MultiEpochSampler
 
 try:
     getattr(torch.hub, 'HASH_REGEX')
@@ -337,12 +336,12 @@ def make_dataset(dir, class_to_idx):
         if not os.path.isdir(d):
             continue
 
-    for root, _, fnames in sorted(os.walk(d)):
-        for fname in tqdm(sorted(fnames)):
-            if is_image_file(fname):
-                path = os.path.join(root, fname)
-                item = (path, class_to_idx[target])
-                images.append(item)
+        for root, _, fnames in sorted(os.walk(d)):
+            for fname in tqdm(sorted(fnames)):
+                if is_image_file(fname):
+                    path = os.path.join(root, fname)
+                    item = (path, class_to_idx[target])
+                    images.append(item)
     return images
 
 
