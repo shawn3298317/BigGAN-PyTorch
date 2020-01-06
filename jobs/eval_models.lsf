@@ -1,7 +1,7 @@
 #BSUB -L /bin/bash
-#BSUB -J "BigGAN128-Hybrid1365"
-#BSUB -o "runs/BigGAN128-Hybrid1365.%J"
-#BSUB -n 4
+#BSUB -J "EvalModels"
+#BSUB -o "runs/EvalModels.%J"
+#BSUB -n 1
 #BSUB -R "span[ptile=1]"
 #BSUB -gpu "num=4"
 #BSUB -q "normal"
@@ -18,8 +18,7 @@ source ${CONDA_ROOT}/etc/profile.d/conda.sh
 conda activate $PYTHON_VIRTUAL_ENVIRONMENT
 export EGO_TOP=/opt/ibm/spectrumcomputing
 
-N=4
-TRAINFILE=$HOME2/trainfile_128_hybrid1365
+TRAINFILE=$HOME2/evalfile
 rm -rf ${TRAINFILE}
 
 cat > set.sh << EoF_s
@@ -39,27 +38,7 @@ mpirun --tag-output ./set.sh
 export PAMI_IBV_ADAPTER_AFFINITY=0
 export NCCL_SOCKET_IFNAME=ib
 
-mpirun -np ${N} \
-python $HOME2/BigGAN-PyTorch/main.py \
-    --model biggan \
-    --dataset Hybrid1365 --resolution 128 \
-    --shuffle  --num_workers 8 --batch_size 256 \
-    --num_G_accumulations 2 --num_D_accumulations 2 \
-    --num_D_steps 2 --G_lr 5e-5 --D_lr 2e-4 --D_B2 0.999 --G_B2 0.999 \
-    --G_attn 64 --D_attn 64 \
-    --G_nl inplace_relu --D_nl inplace_relu \
-    --SN_eps 1e-6 --BN_eps 1e-5 --adam_eps 1e-6 \
-    --G_ortho 0.0 \
-    --G_shared \
-    --G_init ortho --D_init ortho \
-    --hier --dim_z 120 --shared_dim 128 \
-    --G_eval_mode \
-    --G_ch 96 --D_ch 96 \
-    --resume \
-    --ema --use_ema --ema_start 20000 \
-    --test_every 2000 --save_every 500 --num_best_copies 5 --num_save_copies 2 --seed 0 \
-    --multiprocessing-distributed \
-    --world-size ${N} --dist-url file://${TRAINFILE}
+python $HOME2/BigGAN-PyTorch/eval_models.py
 
 # Reset the GPUs
 cat > reset.sh << EoF_r
