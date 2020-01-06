@@ -132,7 +132,7 @@ dmypy.json
 # vscode
 .vscode/
 
-tests
+runs
 dev.py
 data
 logs
