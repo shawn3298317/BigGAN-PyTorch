@@ -31,7 +31,8 @@ def run(config):
                            strict=False, load_optim=False)
         # Ignore items which we might want to overwrite from the command line
         for item in state_dict['config']:
-            if item not in ['z_var', 'base_root', 'batch_size', 'G_batch_size', 'use_ema', 'G_eval_mode']:
+            if item not in ['z_var', 'base_root', 'batch_size', 'G_batch_size', 'use_ema', 'G_eval_mode',
+                            'load_weights']:
                 config[item] = state_dict['config'][item]
 
     # update config (see train.py for explanation)
@@ -103,7 +104,7 @@ def run(config):
         x = np.concatenate(x, 0)[:config['sample_num_npz']]
         y = np.concatenate(y, 0)[:config['sample_num_npz']]
         print('Images shape: %s, Labels shape: %s' % (x.shape, y.shape))
-        npz_filename = '%s/%s/samples.npz' % (config['samples_root'], orig_exp_name)
+        npz_filename = '%s/%s/%s_samples.npz' % (config['samples_root'], orig_exp_name, config['load_weights'])
         print('Saving npz to %s...' % npz_filename)
         np.savez(npz_filename, **{'x': x, 'y': y})
 
@@ -134,7 +135,7 @@ def run(config):
         print('Preparing random sample sheet...')
         images, labels = sample()
         torchvision.utils.save_image(images.float(),
-                                     '%s/%s/random_samples.jpg' % (config['samples_root'], orig_exp_name),
+                                     '%s/%s/%srandom_samples.jpg' % (config['samples_root'], orig_exp_name, config['load_weights']),
                                      nrow=int(G_batch_size**0.5),
                                      normalize=True)
 
@@ -171,7 +172,7 @@ def run(config):
             state_dict['itr'], IS_mean, IS_std, FID)
         return outstring
 
-    trunc_file = os.path.join(config['samples_root'], orig_exp_name, f'truncation_curves_{state_dict["itr"]}.txt')
+    trunc_file = os.path.join(config['samples_root'], orig_exp_name, f'{config["load_weights"]}truncation_curves_{state_dict["itr"]}.txt')
     with open(trunc_file, 'w') as f:
         if config['sample_inception_metrics']:
             print('Calculating Inception metrics...')
