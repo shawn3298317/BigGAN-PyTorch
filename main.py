@@ -224,6 +224,7 @@ def main_worker(gpu, ngpus_per_node, config):
                                z_=z_, y_=y_, config=config)
 
     print('Beginning training at epoch {}...'.format(state_dict['epoch'])) if config['rank'] == 0 else None
+    torch.cuda.empty_cache()
     # Train for specified number of epochs, although we mostly track G iterations.
     for epoch in range(state_dict['epoch'], config['num_epochs']):
         # Which progressbar to use? TQDM or my own?
@@ -231,6 +232,7 @@ def main_worker(gpu, ngpus_per_node, config):
             pbar = utils.progress(loaders[0], displaytype='s1k' if config['use_multiepoch_sampler'] else 'eta')
         else:
             pbar = tqdm(loaders[0])
+        torch.cuda.empty_cache()
         for i, (x, y) in enumerate(pbar):
             # Increment the iteration counter
             state_dict['itr'] += 1
