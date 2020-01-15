@@ -10,6 +10,7 @@ or train_fns.py.
 from __future__ import print_function
 
 import datetime
+import shutil
 import json
 import math
 import os
@@ -752,3 +753,44 @@ def elastic_gan(model, *input):
                 cs *= 2
             else:
                 raise e
+
+
+def load_jsonl(logfile):
+    with open(logfile) as f:
+        return [json.loads(x.strip()) for x in f]
+
+
+def copy_weights(weight_dir, src_suffix, dst_suffix):
+    for f in ['G', 'G_ema', 'D', 'G_optim', 'D_optim', 'state_dict']:
+
+        print(
+            os.path.join(weight_dir, '_'.join([f, src_suffix])),
+            os.path.join(weight_dir, '_'.join([f, dst_suffix])))
+        shutil.copy(
+            os.path.join(weight_dir, '_'.join([f, src_suffix])),
+            os.path.join(weight_dir, '_'.join([f, dst_suffix])))
+
+
+def find_best_weights(exp_name='.'):
+
+    weight_dir = os.path.join('weights', exp_name)
+    log_file = os.path.join('logs', exp_name + '_log.jsonl')
+    log = load_jsonl(log_file)
+    max_IS_idx = np.argmax([x['IS_mean'] for x in log])
+    min_FID_idx = np.argmin([x['FID'] for x in log])
+    last_itr = log[-1]['itr']
+
+    max_IS = log[max_IS_idx]['IS_mean']
+    min_FID = log[min_FID_idx]['FID']
+    max_IS_itr = log[max_IS_idx]['itr']
+    min_FID_itr = log[min_FID_idx]['itr']
+    for sd_file in os.listdir(weight_dir):
+        if 'state_dict' in sd_file:
+            sd = torch.load(os.path.join(weight_dir, sd_file))
+            suffix = sd_file.split('_')[-1]
+            if sd['itr'] == max_IS_itr:
+                copy_weights(weight_dir, suffix, 'best_IS.pth')
+                print(max_IS, max_IS_itr)
+            if sd['itr'] == min_FID_itr:
+                copy_weights(weight_dir, suffix, 'best_FID.pth')
+                print(min_FID, min_FID_itr)
