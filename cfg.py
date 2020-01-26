@@ -485,12 +485,10 @@ def get_root_dirs(name, dataset_type='ImageHDF5', resolution=128, data_root='dat
         'Places365': {
             'ImageHDF5': defaultdict(lambda: os.path.join(data_root, 'Places365'), {}),
             'ImageFolder': defaultdict(lambda: os.path.join(data_root, 'Places365/train'), {}),
-            'ImageDataset': defaultdict(lambda: os.path.join(data_root, 'Places365'), {}),
         },
         'Places365-Challenge': {
             'ImageHDF5': defaultdict(lambda: os.path.join(data_root, 'Places365'), {}),
             'ImageFolder': defaultdict(lambda: os.path.join(data_root, 'Places365/train'), {}),
-            'ImageDataset': defaultdict(lambda: os.path.join(data_root, 'Places365'), {}),
         },
         'Hybrid1365': {
             'ImageHDF5': defaultdict(lambda: data_root, {}),
