@@ -31,7 +31,7 @@ def prepare_parser():
         '--data_root', type=str, default='data',
         help='Default location where data is stored (default: %(default)s)')
     parser.add_argument(
-        '--batch_size', type=int, default=64,
+        '--batch_size', type=int, default=256,
         help='Default overall batchsize (default: %(default)s)')
     parser.add_argument(
         '--parallel', action='store_true', default=False,
