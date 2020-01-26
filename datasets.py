@@ -28,9 +28,9 @@ except AttributeError:
     torch.hub.HASH_REGEX = re.compile(r'-([a-f0-9]*)\.')
 
 
-def get_dataset(name, root_dir=None, resolution=128, dataset_type='ImageFolder',
-                split='train', transform=None, target_transform=None, load_in_mem=False,
-                download=False):
+def _get_dataset(name, root_dir=None, resolution=128, dataset_type='ImageFolder',
+                 split='train', transform=None, target_transform=None, load_in_mem=False,
+                 download=False):
 
     if name == 'Hybrid1365':
         return get_hybrid_dataset(root_dir=root_dir, resolution=resolution,
@@ -77,6 +77,38 @@ def get_dataset(name, root_dir=None, resolution=128, dataset_type='ImageFolder',
     return dataset
 
 
+def get_dataset(name, root=None, resolution=128, dataset_type='ImageFolder',
+                split='train', transform=None, target_transform=None, load_in_mem=False,
+                ):
+
+    if dataset_type == 'ImageFolder':
+        if transform is None:
+            transform = transforms.Compose([
+                CenterCropLongEdge(),
+                transforms.Resize(resolution),
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, 0.5, 0.5),
+                                     (0.5, 0.5, 0.5))])
+        kwargs = {'transform': transform,
+                  'target_transform': target_transform,
+                  'index_filename': f'{name}_{split}.npz',
+                  }
+
+        # Create dataset class based on config selection.
+        dataset = ImageFolder(root=root, **kwargs)
+
+    elif dataset_type == 'ImageHDF5':
+
+        hdf5_name = '{}-{}.hdf5'.format(name, resolution)
+        hdf5_file = os.path.join(root, hdf5_name)
+        if not os.path.exists(hdf5_file):
+            raise ValueError('Cannot find hdf5 file. You should download it, or create if yourself!')
+
+        dataset = ImageHDF5(hdf5_file, load_in_mem=load_in_mem,
+                            target_transform=target_transform)
+    return dataset
+
+
 def get_hybrid_dataset(root_dir=None, resolution=128, dataset_type='ImageHDF5', load_in_mem=False):
     imagenet_root = cfg.get_root_dirs('ImageNet', dataset_type=dataset_type,
                                       resolution=resolution, data_root=root_dir)
@@ -95,10 +127,10 @@ def get_hybrid_dataset(root_dir=None, resolution=128, dataset_type='ImageHDF5', 
 def get_dataloaders(dataset, data_root=None, resolution=128, dataset_type='ImageHDF5',
                     batch_size=64, num_workers=8, shuffle=True, load_in_mem=False,
                     pin_memory=True, drop_last=True, distributed=False, **kwargs):
-    root_dir = cfg.get_root_dirs(dataset, dataset_type, resolution,
-                                 data_root=data_root)
+    root = cfg.get_root_dirs(dataset, dataset_type, resolution,
+                             data_root=data_root)
     dataset = get_dataset(name=dataset,
-                          root_dir=root_dir,
+                          root=root,
                           resolution=resolution,
                           dataset_type=dataset_type,
                           load_in_mem=load_in_mem)
