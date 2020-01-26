@@ -1,6 +1,6 @@
 #BSUB -L /bin/bash
-#BSUB -J "calculate_inception_moments"
-#BSUB -o "runs/calculate_inception_moments.%J"
+#BSUB -J "make_hdf5"
+#BSUB -o "runs/make_hdf5.%J"
 #BSUB -n 1
 #BSUB -R "span[ptile=1]"
 #BSUB -gpu "num=1"
@@ -15,7 +15,7 @@ CONDA_ROOT=$HOME2/anaconda3
 
 DATA_ROOT=$HOME2/data
 DATASET=ImageNet
-RESOLUTION=128
+RESOLUTION=256
 
 source ${CONDA_ROOT}/etc/profile.d/conda.sh
 conda activate $PYTHON_VIRTUAL_ENVIRONMENT
