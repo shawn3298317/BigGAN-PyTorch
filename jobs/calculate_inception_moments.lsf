@@ -37,7 +37,7 @@ mpirun --tag-output ./set.sh
 export PAMI_IBV_ADAPTER_AFFINITY=0
 export NCCL_SOCKET_IFNAME=ib
 
-python $HOME/BigGAN-PyTorch/calculate_inception_moments.py \
+python $HOME2/BigGAN-PyTorch/calculate_inception_moments.py \
     --dataset ${DATASET} \
     --resolution ${RESOLUTION} \
     --data_root ${DATA_ROOT} \
