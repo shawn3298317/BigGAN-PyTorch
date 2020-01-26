@@ -55,6 +55,7 @@ def run(config):
     train_loader = datasets.get_dataloaders(
         config['dataset'],
         config['data_root'],
+        resolution=config['resolution'],
         batch_size=config['batch_size'],
         shuffle=False,
         dataset_type='ImageFolder',
