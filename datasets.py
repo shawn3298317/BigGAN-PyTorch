@@ -1,15 +1,8 @@
-import errno
-import functools
 import os
 import pickle
 import re
 import sys
-import tarfile
-import warnings
 
-from operator import add
-
-import h5py as h5
 import numpy as np
 import torch
 import torch.hub
@@ -21,60 +14,12 @@ from torchvision import transforms
 from tqdm import tqdm
 
 import cfg
+import h5py as h5
 
 try:
     getattr(torch.hub, 'HASH_REGEX')
 except AttributeError:
     torch.hub.HASH_REGEX = re.compile(r'-([a-f0-9]*)\.')
-
-
-def _get_dataset(name, root_dir=None, resolution=128, dataset_type='ImageFolder',
-                 split='train', transform=None, target_transform=None, load_in_mem=False,
-                 download=False):
-
-    if name == 'Hybrid1365':
-        return get_hybrid_dataset(root_dir=root_dir, resolution=resolution,
-                                  dataset_type=dataset_type, load_in_mem=load_in_mem)
-
-    if dataset_type == 'ImageFolder':
-        # Get torchivision dataset class for desired dataset.
-        dataset_func = getattr(torchvision.datasets, name)
-
-        if name in ['CIFAR10', 'CIFAR100']:
-            kwargs = {'train': True if split == 'train' else False}
-        else:
-            kwargs = {'split': split}
-        if name == 'CelebA':
-            def tf(x):
-                return 0 if target_transform is None else target_transform
-            kwargs = {**kwargs, 'target_transform': tf}
-
-        if transform is None:
-            transform = transforms.Compose([
-                CenterCropLongEdge(),
-                transforms.Resize(resolution),
-                transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5),
-                                     (0.5, 0.5, 0.5))])
-        kwargs = {**kwargs,
-                  'download': download,
-                  'transform': transform}
-
-        # Create dataset class based on config selection.
-        dataset = dataset_func(root=root_dir, **kwargs)
-
-    elif dataset_type == 'ImageHDF5':
-        if download:
-            raise NotImplementedError('Automatic Dataset Download not implemented yet...')
-
-        hdf5_name = '{}-{}.hdf5'.format(name, resolution)
-        hdf5_file = os.path.join(root_dir, hdf5_name)
-        if not os.path.exists(hdf5_file):
-            raise ValueError('Cannot find hdf5 file. You should download it, or create if yourself!')
-
-        dataset = ImageHDF5(hdf5_file, load_in_mem=load_in_mem,
-                            target_transform=target_transform)
-    return dataset
 
 
 def get_dataset(name, root=None, resolution=128, dataset_type='ImageFolder',
@@ -109,21 +54,6 @@ def get_dataset(name, root=None, resolution=128, dataset_type='ImageFolder',
     return dataset
 
 
-def get_hybrid_dataset(root_dir=None, resolution=128, dataset_type='ImageHDF5', load_in_mem=False):
-    imagenet_root = cfg.get_root_dirs('ImageNet', dataset_type=dataset_type,
-                                      resolution=resolution, data_root=root_dir)
-    places365_root = cfg.get_root_dirs('Places365', dataset_type=dataset_type,
-                                       resolution=resolution, data_root=root_dir)
-    imagenet_dataset = get_dataset('ImageNet', resolution=resolution,
-                                   dataset_type=dataset_type, load_in_mem=load_in_mem,
-                                   root_dir=imagenet_root)
-    placess365_dataset = get_dataset('Places365', resolution=resolution,
-                                     dataset_type=dataset_type, load_in_mem=load_in_mem,
-                                     target_transform=functools.partial(add, 1000),
-                                     root_dir=places365_root)
-    return torch.utils.data.ConcatDataset((imagenet_dataset, placess365_dataset))
-
-
 def get_dataloaders(dataset, data_root=None, resolution=128, dataset_type='ImageHDF5',
                     batch_size=64, num_workers=8, shuffle=True, load_in_mem=False,
                     pin_memory=True, drop_last=True, distributed=False, **kwargs):
@@ -145,197 +75,6 @@ def get_dataloaders(dataset, data_root=None, resolution=128, dataset_type='Image
                             shuffle=shuffle, num_workers=num_workers,
                             pin_memory=pin_memory, drop_last=drop_last)
     return [loader]
-
-
-def get_data_loaders_old(dataset, data_root=None, augment=False, batch_size=64,
-                         num_workers=8, shuffle=True, load_in_mem=False, hdf5=False,
-                         pin_memory=True, drop_last=True, start_itr=0,
-                         num_epochs=500, use_multiepoch_sampler=False,
-                         **kwargs):
-
-    # Convenience function to centralize all data loaders
-    # Append /FILENAME.hdf5 to root if using hdf5
-    data_root += '/%s' % cfg.root_dict[dataset]
-    print('Using dataset root location %s' % data_root)
-
-    which_dataset = cfg.dset_dict[dataset]
-    norm_mean = [0.5, 0.5, 0.5]
-    norm_std = [0.5, 0.5, 0.5]
-    image_size = cfg.imsize_dict[dataset]
-    # For image folder datasets, name of the file where we store the precomputed
-    # image locations to avoid having to walk the dirs every time we load.
-    dataset_kwargs = {'index_filename': '%s_imgs.npz' % dataset}
-
-    # HDF5 datasets have their own inbuilt transform, no need to train_transform
-    if 'hdf5' in dataset:
-        train_transform = None
-    else:
-        if augment:
-            print('Data will be augmented...')
-            if dataset in ['C10', 'C100']:
-                train_transform = [transforms.RandomCrop(32, padding=4),
-                                   transforms.RandomHorizontalFlip()]
-            else:
-                train_transform = [RandomCropLongEdge(),
-                                   transforms.Resize(image_size),
-                                   transforms.RandomHorizontalFlip()]
-        else:
-            print('Data will not be augmented...')
-            if dataset in ['C10', 'C100']:
-                train_transform = []
-            else:
-                train_transform = [CenterCropLongEdge(), transforms.Resize(image_size)]
-            # train_transform = [transforms.Resize(image_size), transforms.CenterCrop]
-        train_transform = transforms.Compose(train_transform + [
-            transforms.ToTensor(),
-            transforms.Normalize(norm_mean, norm_std)])
-    train_set = which_dataset(root=data_root, transform=train_transform,
-                              load_in_mem=load_in_mem, **dataset_kwargs)
-
-    # Prepare loader; the loaders list is for forward compatibility with
-    # using validation / test splits.
-    loaders = []
-    if use_multiepoch_sampler:
-        print('Using multiepoch sampler from start_itr %d...' % start_itr)
-        loader_kwargs = {'num_workers': num_workers, 'pin_memory': pin_memory}
-        sampler = MultiEpochSampler(train_set, num_epochs, start_itr, batch_size)
-        train_loader = DataLoader(train_set, batch_size=batch_size,
-                                  sampler=sampler, **loader_kwargs)
-    else:
-        loader_kwargs = {'num_workers': num_workers, 'pin_memory': pin_memory,
-                         'drop_last': drop_last}  # Default, drop last incomplete batch
-        train_loader = DataLoader(train_set, batch_size=batch_size,
-                                  shuffle=shuffle, **loader_kwargs)
-    loaders.append(train_loader)
-    return loaders
-
-
-ROOT_URL = 'http://ganocracy.csail.mit.edu/data/'
-data_urls = {
-    'hdf5': {
-        'BuildingsHQ-64.hdf5': {
-            'url': os.path.join(ROOT_URL, 'BuildingsHQ-64.hdf5'),
-            'md5': ','
-        },
-        'BuildingsHQ-128.hdf5': {
-            'url': os.path.join(ROOT_URL, 'BuildingsHQ-128.hdf5'),
-            'md5': 'b2c0f7129d6dd117d9dda2a7098870f1'
-        },
-        'places365-64.hdf5': {
-            'url': os.path.join(ROOT_URL, 'BuildingsHQ-64.hdf5'),
-            'md5': ','
-        },
-        'places365-128.hdf5': {
-            'url': os.path.join(ROOT_URL, 'BuildingsHQ-128.hdf5'),
-            'md5': 'b2c0f7129d6dd117d9dda2a7098870f1'
-        }
-    },
-    'celeba': {
-        'tar': os.path.join(ROOT_URL, 'celeba-054b22a6.tar.gz')
-    },
-    'buildings_hq': {
-        'tar': os.path.join(ROOT_URL, 'buildings_hq.tar.gz'),
-        'hdf5': {
-            '128': os.path.join(ROOT_URL, 'B128.hdf5'),
-            '256': os.path.join(ROOT_URL, 'B256.hdf5'),
-        },
-    },
-    'satellite_images': {
-        'tar': os.path.join(ROOT_URL, 'satellite_images-79716c2f.tar.gz')
-    },
-    'imagenet': {
-        'tar': os.path.join(ROOT_URL, 'imagenet.tar.gz'),
-        'hdf5': {
-            '64': os.path.join(ROOT_URL, 'I64.hdf5'),
-            '128': os.path.join(ROOT_URL, 'I128.hdf5'),
-            '256': os.path.join(ROOT_URL, 'I256.hdf5'),
-        },
-    },
-    'places365': {
-        'tar': os.path.join(ROOT_URL, 'places365.tar.gz'),
-        'hdf5': {
-            '64': os.path.join(ROOT_URL, 'P64.hdf5'),
-            '128': os.path.join(ROOT_URL, 'P128.hdf5'),
-            '256': os.path.join(ROOT_URL, 'P256.hdf5'),
-        }
-    }
-}
-
-
-def load_data_from_url(url, root_dir=None, progress=True):
-    cached_file = _load_file_from_url(url, root_dir=root_dir, progress=progress)
-    # match = torch.hub.HASH_REGEX.search(cached_file)
-    # data_dir = cached_file[:match.start()]
-
-    with tarfile.open(cached_file) as tf:
-        name = tf.getnames()[0]
-    data_dir = os.path.join(root_dir, name)
-
-    if not os.path.exists(data_dir):
-        print(f'Extracting:  "{cached_file}" to {data_dir}')
-        with tarfile.open(name=cached_file) as tar:
-            # Go over each member
-            for member in tqdm(iterable=tar.getmembers(), total=len(tar.getmembers())):
-                # Extract member
-                tar.extract(member=member, path=root_dir)
-
-        # tf = tarfile.open(cached_file)
-        # print(f'Extracting to: {data_dir}')
-        # tf.extractall(path=root_dir)
-        # print(f'finished extracting to: {root_dir}')
-    else:
-        print(f'Data found at: {data_dir}')
-    return data_dir
-
-
-def _load_file_from_url(url, root_dir=None, progress=True):
-    r"""Loads the dataset file from the given URL.
-
-    If the object is already present in `root_dir`, it's deserialized and
-    returned. The filename part of the URL should follow the naming convention
-    ``filename-<sha256>.ext`` where ``<sha256>`` is the first eight or more
-    digits of the SHA256 hash of the contents of the file. The hash is used to
-    ensure unique names and to verify the contents of the file.
-
-    The default value of `model_dir` is ``$TORCH_HOME/checkpoints`` where
-    environment variable ``$TORCH_HOME`` defaults to ``$XDG_CACHE_HOME/torch``.
-    ``$XDG_CACHE_HOME`` follows the X Design Group specification of the Linux
-    filesytem layout, with a default value ``~/.cache`` if not set.
-
-    Args:
-        url (string): URL of the object to download
-        data_dir (string, optional): directory in which to save the object
-        progress (bool, optional): whether or not to display a progress bar to stderr
-
-    # 'https://pytorch.org/docs/stable/_modules/torch/hub.html#load'
-
-    """
-    # Issue warning to move data if old env is set
-    if os.getenv('TORCH_MODEL_ZOO'):
-        warnings.warn('TORCH_MODEL_ZOO is deprecated, please use env TORCH_HOME instead')
-
-    if root_dir is None:
-        torch_home = torch.hub._get_torch_home()
-        root_dir = os.path.join(torch_home, 'data')
-
-    try:
-        os.makedirs(root_dir)
-    except OSError as e:
-        if e.errno == errno.EEXIST:
-            # Directory already exists, ignore.
-            pass
-        else:
-            # Unexpected OSError, re-raise.
-            raise
-
-    parts = torch.hub.urlparse(url)
-    filename = os.path.basename(parts.path)
-    cached_file = os.path.join(root_dir, filename)
-    if not os.path.exists(cached_file):
-        sys.stderr.write('Downloading: "{}" to {}\n'.format(url, cached_file))
-        hash_prefix = torch.hub.HASH_REGEX.search(filename).group(1)
-        torch.hub._download_url_to_file(url, cached_file, hash_prefix, progress)
-    return cached_file
 
 
 IMG_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm']
@@ -674,97 +413,6 @@ def _make_hdf5(dataloader, root, filename, chunk_size=500, compression=False):
                 f['imgs'][-x.shape[0]:] = x
                 f['labels'].resize(f['labels'].shape[0] + y.shape[0], axis=0)
                 f['labels'][-y.shape[0]:] = y
-
-
-def old_old_get_dataset(name, root_dir=None, resolution=128, dataset_type='ImageFolder',
-                        download=True, split='train', transform=None, target_transform=None,
-                        load_in_mem=False):
-    if name == 'Custom':
-        pass
-
-    if dataset_type == 'ImageFolder':
-        # Get torchivision dataset class for desired dataset.
-        dataset_func = getattr(torchvision.datasets, name)
-
-        if name in ['CIFAR10', 'CIFAR100']:
-            kwargs = {'train': True if split == 'train' else False}
-        else:
-            kwargs = {'split': split}
-        if name == 'CelebA':
-            def tf(x):
-                return 0 if target_transform is None else target_transform
-            kwargs = {**kwargs, 'target_transform': tf}
-
-        if transform is None:
-            transform = transforms.Compose([
-                CenterCropLongEdge(),
-                transforms.Resize(resolution),
-                transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5),
-                                     (0.5, 0.5, 0.5))])
-        kwargs = {**kwargs,
-                  'download': download,
-                  'transform': transform}
-
-        # Create dataset class based on config selection.
-        dataset = dataset_func(root=root_dir, **kwargs)
-
-    elif dataset_type == 'ImageHDF5':
-
-        hdf5_name = '{}-{}.hdf5'.format(name, resolution)
-        hdf5_file = os.path.join(root_dir, hdf5_name)
-        if not os.path.exists(hdf5_file):
-            if download:
-                d = data_urls['hdf5'][hdf5_name]
-                url, md5 = d['url'], d['md5']
-                torchvision.datasets.utils.download_url(url, root_dir, filename=hdf5_name, md5=md5)
-            raise ValueError('Cannot find hdf5 file. You need to set=download it, or create if yourself!')
-
-        def target_transform(x):
-            return 0 if name == 'CelebA' else None
-
-        dataset = ImageHDF5(hdf5_file, load_in_mem=load_in_mem,
-                            target_transform=target_transform)
-
-    return dataset
-
-
-def get_dataset_old(root_dir, name, resolution, filetype, ):
-    if filetype == 'tar':
-        url = data_urls[name]['tar']
-        data_dir = load_data_from_url(url, root_dir)
-        dataset = ImageFolder(root=data_dir,
-                              transform=transforms.Compose([
-                                  transforms.CenterCropLongEdge(),
-                                  transforms.Resize(resolution),
-                                  transforms.ToTensor(),
-                                  transforms.Normalize((0.5, 0.5, 0.5),
-                                                       (0.5, 0.5, 0.5))
-                              ]))
-    elif filetype == 'hdf5':
-        url = data_urls[name]['hdf5'][resolution]
-        hdf5_file = load_data_from_url(url, root_dir)
-        dataset = ImageHDF5(hdf5_file)
-    else:
-        raise ValueError('Unreconized filetype: {}'.format(filetype))
-
-    return dataset
-
-
-def old_get_dataset(name, hdf5=True, size=64, targets=False):
-    pass
-
-
-def imagenet(data_dir, size=64, targets=False):
-    pass
-
-
-def places365(data_dir, size=64, targets=False):
-    pass
-
-
-def ffhq(data_dir, size=64, targets=False):
-    pass
 
 
 class CIFAR10(torchvision.datasets.CIFAR10):
