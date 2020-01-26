@@ -90,18 +90,14 @@ def main_worker(gpu, ngpus_per_node, config):
         dist.init_process_group(backend=config['dist_backend'], init_method=config['dist_url'],
                                 world_size=config['world_size'], rank=config['rank'])
     # Import the model--this line allows us to dynamically select different files.
-    # model = __import__(config['model'])
     model = getattr(models, config['model'])
     experiment_name = (config['experiment_name'] if config['experiment_name']
                        else utils.name_from_config(config))
-    # experiment_name += '_{}'.format(config['rank'])
     print('Experiment name is {}'.format(experiment_name)) if config['rank'] == 0 else None
 
     # Next, build the model
     G = model.Generator(**config).to(device)
     D = model.Discriminator(**config).to(device)
-    # G = model.Generator(**config)
-    # D = model.Discriminator(**config)
 
     # If using EMA, prepare it
     if config['ema']:
@@ -156,11 +152,8 @@ def main_worker(gpu, ngpus_per_node, config):
         GD = GD.cuda(config['gpu'])
     else:
         GD = torch.nn.DataParallel(GD).cuda()
-    # If parallel, parallelize the GD module
-#   if config['parallel']:
-    # GD = nn.DataParallel(GD)
-    # if config['cross_replica']:
-    #   patch_replication_callback(GD)
+
+    torch.cuda.empty_cache()
 
     # Prepare loggers for stats; metrics holds test metrics,
     # lmetrics holds any desired training metrics.

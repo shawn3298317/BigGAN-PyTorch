@@ -760,7 +760,8 @@ def load_jsonl(logfile):
         return [json.loads(x.strip()) for x in f]
 
 
-def copy_weights(weight_dir, src_suffix, dst_suffix):
+def copy_weights(weight_dir, src_suffix, dst_suffix,
+                 hostname='login.csail.mit.edu'):
     for f in ['G', 'G_ema', 'D', 'G_optim', 'D_optim', 'state_dict']:
 
         print(
@@ -769,6 +770,14 @@ def copy_weights(weight_dir, src_suffix, dst_suffix):
         shutil.copy(
             os.path.join(weight_dir, '_'.join([f, src_suffix])),
             os.path.join(weight_dir, '_'.join([f, dst_suffix])))
+        fname = os.path.join(weight_dir, '_'.join([f, dst_suffix]))
+        if hostname is not None:
+            cmd1 = f'ssh {hostname} "mkdir -p ~/lib/BigGAN-PyTorch/{weight_dir}"'
+            print(cmd1)
+            os.system(cmd1)
+            cmd = f'scp {fname} {hostname}:~/lib/BigGAN-PyTorch/{fname}'
+            print(cmd)
+            os.system(cmd)
 
 
 def find_best_weights(exp_name='.'):

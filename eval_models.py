@@ -1,7 +1,6 @@
 import os
 
 import cfg
-import utils
 import sample
 
 WEIGHTS_ROOT = 'weights'
@@ -15,7 +14,7 @@ def get_experiments(root, blacklist):
     return [exp for exp in os.listdir(WEIGHTS_ROOT) if exp not in blacklist]
 
 
-def get_config(exp_name):
+def get_config(exp_name, load_weights=''):
     print(exp_name)
     parser = cfg.prepare_parser()
     parser = cfg.add_sample_parser(parser)
@@ -24,6 +23,7 @@ def get_config(exp_name):
     config['config_from_name'] = True
     config['experiment_name'] = exp_name
     config['weights_root'] = WEIGHTS_ROOT
+    config['load_weights'] = load_weights
 
     config['use_ema'] = True
     config['parallel'] = True
