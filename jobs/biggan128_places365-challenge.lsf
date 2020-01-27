@@ -18,7 +18,7 @@ conda activate $PYTHON_VIRTUAL_ENVIRONMENT
 export EGO_TOP=/opt/ibm/spectrumcomputing
 
 N=4
-TRAINFILE=$HOME2/trainfile_128_2
+TRAINFILE=$HOME2/trainfile_128_plaCes365_challenge
 rm -rf ${TRAINFILE}
 
 cat > set.sh << EoF_s

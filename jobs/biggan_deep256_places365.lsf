@@ -18,7 +18,7 @@ conda activate $PYTHON_VIRTUAL_ENVIRONMENT
 export EGO_TOP=/opt/ibm/spectrumcomputing
 
 N=16
-TRAINFILE=$HOME2/trainfile_biggan_deep256
+TRAINFILE=$HOME2/trainfile_biggan_deep256_places365
 rm -rf ${TRAINFILE}
 
 cat > set.sh << EoF_s
