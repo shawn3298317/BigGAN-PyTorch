@@ -9,7 +9,10 @@ This repo contains code for 4-8 GPU training of BigGANs from [Large Scale GAN Tr
 This code is by Andy Brock and Alex Andonian.
 
 ## How To Use This Code
-You will need:
+
+### To deploy on the MIT Satori PowerAI Cluster follow [these instructions](SATORI.md)
+
+Otherwise, you will need:
 
 - [PyTorch](https://PyTorch.org/), version 1.0.1
 - tqdm, numpy, scipy, and h5py
@@ -47,7 +50,7 @@ You can point all of these to a different base folder using the `--base_root` ar
 We include scripts to run BigGAN-deep, but we have not fully trained a model using them, so consider them untested. Additionally, we include scripts to run a model on CIFAR, and to run SA-GAN (with EMA) and SN-GAN on ImageNet. The SA-GAN code assumes you have 4xTitanX (or equivalent in terms of GPU RAM) and will run with a batch size of 128 and 2 gradient accumulations.
 
 ## An Important Note on Inception Metrics
-This repo uses the PyTorch in-built inception network to calculate IS and FID. 
+This repo uses the PyTorch in-built inception network to calculate IS and FID.
 These scores are different from the scores you would get using the official TF inception code, and are only for monitoring purposes!
 Run sample.py on your model, with the `--sample_npz` argument, then run inception_tf13 to calculate the actual TensorFlow IS. Note that you will need to have TensorFlow 1.3 or earlier installed, as TF1.4+ breaks the original IS code.
 
@@ -66,13 +69,13 @@ This repo also contains scripts for porting the original TFHub BigGAN Generator 
 ## Fine-tuning, Using Your Own Dataset, or Making New Training Functions
 ![That's deep, man](imgs/DeepSamples.png?raw=true "Deep Samples")
 
-If you wish to resume interrupted training or fine-tune a pre-trained model, run the same launch script but with the `--resume` argument added. 
+If you wish to resume interrupted training or fine-tune a pre-trained model, run the same launch script but with the `--resume` argument added.
 Experiment names are automatically generated from the configuration, but can be overridden using the `--experiment_name` arg (for example, if you wish to fine-tune a model using modified optimizer settings).
 
 To prep your own dataset, you will need to add it to datasets.py and modify the convenience dicts in utils.py (dset_dict, imsize_dict, root_dict, nclass_dict, classes_per_sheet_dict) to have the appropriate metadata for your dataset.
 Repeat the process in prepare_data.sh (optionally produce an HDF5 preprocessed copy, and calculate the Inception Moments for FID).
 
-By default, the training script will save the top 5 best checkpoints as measured by Inception Score. 
+By default, the training script will save the top 5 best checkpoints as measured by Inception Score.
 For datasets other than ImageNet, Inception Score can be a very poor measure of quality, so you will likely want to use `--which_best FID` instead.
 
 To use your own training function (e.g. train a BigVAE): either modify train_fns.GAN_training_function or add a new train fn and add it after the `if config['which_train_fn'] == 'GAN':` line in `train.py`.
@@ -88,7 +91,7 @@ especially if training takes multiple weeks. Hopefully these will be helpful for
 ## Key Differences Between This Code And The Original BigGAN
 - We use the optimizer settings from SA-GAN (G_lr=1e-4, D_lr=4e-4, num_D_steps=1, as opposed to BigGAN's G_lr=5e-5, D_lr=2e-4, num_D_steps=2).
 While slightly less performant, this was the first corner we cut to bring training times down.
-- By default, we do not use Cross-Replica BatchNorm (AKA Synced BatchNorm). 
+- By default, we do not use Cross-Replica BatchNorm (AKA Synced BatchNorm).
 The two variants we tried (a custom, naive one and the one included in this repo) have slightly different gradients (albeit identical forward passes) from the built-in BatchNorm, which appear to be sufficient to cripple training.
 - Gradient accumulation means that we update the SV estimates and the BN statistics 8 times more frequently. This means that the BN stats are much closer to standing stats, and that the singular value estimates tend to be more accurate.
 Because of this, we measure metrics by default with G in test mode (using the BatchNorm running stat estimates instead of computing standing stats as in the paper). We do still support standing stats (see the sample.sh scripts).
@@ -97,7 +100,7 @@ This could also conceivably result in gradients from the earlier accumulations b
 but it looks like this particular model got a winning ticket. Regardless, we provide two highly optimized (fast and minimal memory consumption) ortho reg implementations which directly compute the ortho reg. gradients.
 
 ## A Note On The Design Of This Repo
-This code is designed from the ground up to serve as an extensible, hackable base for further research code. 
+This code is designed from the ground up to serve as an extensible, hackable base for further research code.
 We've put a lot of thought into making sure the abstractions are the *right* thickness for research--not so thick as to be impenetrable, but not so thin as to be useless.
 The key idea is that if you want to experiment with a SOTA setup and make some modification (try out your own new loss function, architecture, self-attention block, etc) you should be able to easily do so just by dropping your code in one or two places, without having to worry about the rest of the codebase.
 Things like the use of self.which_conv and functools.partial in the BigGAN.py model definition were put together with this in mind, as was the design of the Spectral Norm class inheritance.
@@ -108,7 +111,7 @@ With that said, this is a somewhat large codebase for a single project. While we
 Want to work on or improve this code? There are a couple things this repo would benefit from, but which don't yet work.
 
 - Synchronized BatchNorm (AKA Cross-Replica BatchNorm). We tried out two variants of this, but for some unknown reason it crippled training each time.
-  We have not tried the [apex](https://github.com/NVIDIA/apex) SyncBN as my school's servers are on ancient NVIDIA drivers that don't support it--apex would probably be a good place to start. 
+  We have not tried the [apex](https://github.com/NVIDIA/apex) SyncBN as my school's servers are on ancient NVIDIA drivers that don't support it--apex would probably be a good place to start.
 - Mixed precision training and making use of Tensor cores. This repo includes a naive mixed-precision Adam implementation which works early in training but leads to early collapse, and doesn't do anything to activate Tensor cores (it just reduces memory consumption).
   As above, integrating [apex](https://github.com/NVIDIA/apex) into this code and employing its mixed-precision training techniques to take advantage of Tensor cores and reduce memory consumption could yield substantial speed gains.
 
