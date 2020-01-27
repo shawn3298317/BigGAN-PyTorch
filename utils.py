@@ -141,7 +141,7 @@ def prepare_root(config):
     for key in ['weights_root', 'logs_root', 'samples_root']:
         if not os.path.exists(config[key]):
             print('Making directory {} for {}...'.format(config[key], key))
-            os.mkdir(config[key])
+            os.makedirs(config[key], exist_ok=True)
 
 
 # Simple wrapper that applies EMA to a model. COuld be better done in 1.0 using

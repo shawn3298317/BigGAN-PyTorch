@@ -59,6 +59,9 @@ def prepare_parser():
     parser.add_argument(
         '--gpu', default=None, type=int,
         help='GPU id to use.')
+    parser.add_argument(
+        '--dataset_type', type=str,default='ImageHDF5',
+    )
 
     # Model stuff
     parser.add_argument(

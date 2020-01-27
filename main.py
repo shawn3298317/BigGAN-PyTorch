@@ -23,7 +23,6 @@ import inception_utils
 import models
 import train_fns
 import utils
-from sync_batchnorm import patch_replication_callback
 
 # The main training file. Config is a dictionary specifying the configuration
 # of this training run.
