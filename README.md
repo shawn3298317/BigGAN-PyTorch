@@ -4,7 +4,7 @@ The author's officially unofficial PyTorch BigGAN implementation.
 ![Dogball? Dogball!](imgs/header_image.jpg?raw=true "Dogball? Dogball!")
 
 
-This repo contains code for 4-8 GPU training of BigGANs from [Large Scale GAN Training for High Fidelity Natural Image Synthesis](https://arxiv.org/abs/1809.11096) by Andrew Brock, Jeff Donahue, and Karen Simonyan.
+This repo contains code for 4-128 GPU training of BigGANs from [Large Scale GAN Training for High Fidelity Natural Image Synthesis](https://arxiv.org/abs/1809.11096) by Andrew Brock, Jeff Donahue, and Karen Simonyan.
 
 This code is by Andy Brock and Alex Andonian.
 
