@@ -4,8 +4,6 @@ from collections import defaultdict
 
 import torch.nn as nn
 
-import datasets as dset
-
 
 def prepare_parser():
     usage = 'Parser for all scripts.'
@@ -60,7 +58,7 @@ def prepare_parser():
         '--gpu', default=None, type=int,
         help='GPU id to use.')
     parser.add_argument(
-        '--dataset_type', type=str,default='ImageHDF5',
+        '--dataset_type', type=str, default='ImageHDF5',
     )
 
     # Model stuff
