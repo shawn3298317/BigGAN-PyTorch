@@ -16,7 +16,7 @@ CONDA_ROOT=$HOME2/anaconda3
 DATA_ROOT=$HOME2/data
 DATASET=ImageNet
 RESOLUTION=128
-DATASET_TYPE=ImageHDF5
+DATASET_TYPE=ImageFolder
 
 source ${CONDA_ROOT}/etc/profile.d/conda.sh
 conda activate $PYTHON_VIRTUAL_ENVIRONMENT

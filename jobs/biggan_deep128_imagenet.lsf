@@ -39,6 +39,7 @@ mpirun -np ${N} \
 python $HOME2/BigGAN-PyTorch/main.py \
     --model biggan_deep \
     --dataset ImageNet --resolution 128 --shuffle  --num_workers 8 --batch_size 256 \
+    --dataset_type ImageFolder \
     --num_G_accumulations 1 --num_D_accumulations 1 \
     --num_D_steps 2 --G_lr 5e-5 --D_lr 2e-4 --D_B2 0.999 --G_B2 0.999 \
     --G_attn 64 --D_attn 64 \
