@@ -13,7 +13,7 @@ HOME2=/nobackup/users/$(whoami)
 PYTHON_VIRTUAL_ENVIRONMENT=wmlce-1.6.2
 CONDA_ROOT=$HOME2/anaconda3
 
-DATA_ROOT=$HOME2/data
+DATA_ROOT=data
 DATASET=ImageNet
 RESOLUTION=128
 
