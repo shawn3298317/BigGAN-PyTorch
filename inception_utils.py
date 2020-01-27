@@ -11,15 +11,16 @@
     numbers. This code tends to produce IS values that are 5-10% lower than
     those obtained through TF.
 '''
+import types
+
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.utils.model_zoo as model_zoo
 from scipy import linalg  # For numpy FID
 from torch.nn import Parameter as P
 from torchvision.models.inception import inception_v3
-
-import pretorched
 
 
 class WrapInception(nn.Module):
@@ -269,7 +270,7 @@ def load_inception_net(config):
     """Load and wrap the Inception model."""
     dataset = config['pretrained']
     nc = {'imagenet': 1000, 'places365': 365, 'hybrid1365': 1365}.get(dataset, 1000)
-    inception_model = pretorched.inceptionv3(num_classes=nc, pretrained=dataset)
+    inception_model = inceptionv3(num_classes=nc, pretrained=dataset)
     inception_model.fc = inception_model.last_linear
     inception_model = WrapInception(inception_model.eval(), pretrained=dataset).cuda()
     if config['distributed']:
@@ -335,3 +336,111 @@ def prepare_inception_metrics(filename, config, no_fid=False):
         del mu, sigma, pool, logits, labels
         return IS_mean, IS_std, FID
     return get_inception_metrics
+
+
+def inceptionv3(num_classes=1000, pretrained='imagenet'):
+    r"""Inception v3 model architecture from
+    `"Rethinking the Inception Architecture for Computer Vision" <http://arxiv.org/abs/1512.00567>`_.
+    """
+    model = inception_v3(num_classes=num_classes, pretrained=False)
+    if pretrained is not None:
+        settings = pretrained_settings['inceptionv3'][pretrained]
+        model = load_pretrained(model, num_classes, settings)
+
+    # Modify attributs
+    model.last_linear = model.fc
+    del model.fc
+
+    def features(self, input):
+        # 299 x 299 x 3
+        x = self.Conv2d_1a_3x3(input)  # 149 x 149 x 32
+        x = self.Conv2d_2a_3x3(x)  # 147 x 147 x 32
+        x = self.Conv2d_2b_3x3(x)  # 147 x 147 x 64
+        x = F.max_pool2d(x, kernel_size=3, stride=2)  # 73 x 73 x 64
+        x = self.Conv2d_3b_1x1(x)  # 73 x 73 x 80
+        x = self.Conv2d_4a_3x3(x)  # 71 x 71 x 192
+        x = F.max_pool2d(x, kernel_size=3, stride=2)  # 35 x 35 x 192
+        x = self.Mixed_5b(x)  # 35 x 35 x 256
+        x = self.Mixed_5c(x)  # 35 x 35 x 288
+        x = self.Mixed_5d(x)  # 35 x 35 x 288
+        x = self.Mixed_6a(x)  # 17 x 17 x 768
+        x = self.Mixed_6b(x)  # 17 x 17 x 768
+        x = self.Mixed_6c(x)  # 17 x 17 x 768
+        x = self.Mixed_6d(x)  # 17 x 17 x 768
+        x = self.Mixed_6e(x)  # 17 x 17 x 768
+        if self.training and self.aux_logits:
+            self._out_aux = self.AuxLogits(x)  # 17 x 17 x 768
+        x = self.Mixed_7a(x)  # 8 x 8 x 1280
+        x = self.Mixed_7b(x)  # 8 x 8 x 2048
+        x = self.Mixed_7c(x)  # 8 x 8 x 2048
+        return x
+
+    def logits(self, features):
+        x = F.avg_pool2d(features, kernel_size=8)  # 1 x 1 x 2048
+        x = F.dropout(x, training=self.training)  # 1 x 1 x 2048
+        x = x.view(x.size(0), -1)  # 2048
+        x = self.last_linear(x)  # 1000 (num_classes)
+        if self.training and self.aux_logits:
+            aux = self._out_aux
+            self._out_aux = None
+            return x, aux
+        return x
+
+    def forward(self, input):
+        x = self.features(input)
+        x = self.logits(x)
+        return x
+
+    # Modify methods
+    model.features = types.MethodType(features, model)
+    model.logits = types.MethodType(logits, model)
+    model.forward = types.MethodType(forward, model)
+    setattr(model.__class__, 'input_size', (3, 299, 299))
+    setattr(model.__class__, 'mean', [0.5, 0.5, 0.5])
+    setattr(model.__class__, 'std', [0.5, 0.5, 0.5])
+    return model
+
+
+pretrained_settings = {
+    'inceptionv3': {
+        'imagenet': {
+            'url': 'https://download.pytorch.org/models/inception_v3_google-1a9a5a14.pth',
+            'input_space': 'RGB',
+            'input_size': [3, 299, 299],
+            'input_range': [0, 1],
+            'mean': [0.5, 0.5, 0.5],
+            'std': [0.5, 0.5, 0.5],
+            'num_classes': 1000,
+        },
+        'places365': {
+            'url': 'http://pretorched-x.csail.mit.edu/models/inceptionv3_places365-87312459.pth',
+            'input_space': 'RGB',
+            'input_size': [3, 299, 299],
+            'input_range': [0, 1],
+            'mean': [0.5, 0.5, 0.5],
+            'std': [0.5, 0.5, 0.5],
+            'num_classes': 365
+        },
+        'hybrid1365': {
+            'url': 'http://pretorched-x.csail.mit.edu/models/inceptionv3_hybrid1365-82826a0f.pth',
+            'input_space': 'RGB',
+            'input_size': [3, 299, 299],
+            'input_range': [0, 1],
+            'mean': [0.5, 0.5, 0.5],
+            'std': [0.5, 0.5, 0.5],
+            'num_classes': 1365
+        }
+    }
+}
+
+
+def load_pretrained(model, num_classes, settings):
+    assert num_classes == settings['num_classes'], \
+        "num_classes should be {}, but is {}".format(settings['num_classes'], num_classes)
+    model.load_state_dict(model_zoo.load_url(settings['url']))
+    model.input_space = settings['input_space']
+    model.input_size = settings['input_size']
+    model.input_range = settings['input_range']
+    model.mean = settings['mean']
+    model.std = settings['std']
+    return model

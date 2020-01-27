@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.nn import init
 
-import pretorched.layers as layers
+import layers
 
 # BigGAN-deep: uses a different resblock and pattern
 
