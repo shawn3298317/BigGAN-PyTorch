@@ -164,14 +164,14 @@ def run(config):
         result = {
             'use_ema': config['use_ema'],
             'G_eval_mode': config['G_eval_mode'],
-            'z_var': float(z_.var),
+            'z_var': z_.var,
             'num_inception_images': config['num_inception_images'],
             'num_standing_accumulations': config['num_standing_accumulations'],
             'G_batch_size': G_batch_size,
             'itr': state_dict['itr'],
-            'IS_mean': IS_mean,
-            'IS_std': IS_std,
-            'FID': FID,
+            'IS_mean': IS_mean.item(),
+            'IS_std': IS_std.item(),
+            'FID': FID.item(),
         }
         # Prepare output string
         outstring = 'Using %s weights ' % ('ema' if config['use_ema'] else 'non-ema')
@@ -189,7 +189,7 @@ def run(config):
     results = []
 
     name = ''
-    name = f'{state_dict["itr"]}' + '_{}_results.json'
+    name = f'itr_{state_dict["itr"]}' + '_zvar_{}_results.json'
     name = f'{config["load_weights"]}_' + name if config["load_weights"] else name
     results_file_tmpl = os.path.join(config['results_root'], orig_exp_name, name)
 

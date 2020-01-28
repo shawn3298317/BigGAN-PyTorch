@@ -40,8 +40,8 @@ def get_config(exp_name, load_weights=''):
     return config
 
 
-def run(exp_name):
-    config = get_config(exp_name)
+def run(exp_name, load_weights=''):
+    config = get_config(exp_name, load_weights=load_weights)
     sample.run(config)
 
 
