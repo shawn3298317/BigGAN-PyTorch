@@ -188,7 +188,6 @@ def run(config):
 
     results = []
 
-    name = ''
     name = f'itr_{state_dict["itr"]}' + '_zvar_{}_results.json'
     name = f'{config["load_weights"]}_' + name if config["load_weights"] else name
     results_file_tmpl = os.path.join(config['results_root'], orig_exp_name, name)

@@ -2,6 +2,7 @@ import os
 
 import cfg
 import sample
+import utils
 
 WEIGHTS_ROOT = 'weights'
 blacklist = [
@@ -40,9 +41,14 @@ def get_config(exp_name, load_weights=''):
     return config
 
 
-def run(exp_name, load_weights=''):
+def run(exp_name, load_weights='', overwrite=False):
     config = get_config(exp_name, load_weights=load_weights)
-    sample.run(config)
+    lock_file = os.path.join(config['results_root'], '_'.join(['.', config['experiment_name'], load_weights]))
+    os.makedirs(os.path.dirname(lock_file), exist_ok=True)
+    if overwrite:
+        sample.run(config)
+    else:
+        utils.run_once(lock_file, sample.run, config)
 
 
 def test():
