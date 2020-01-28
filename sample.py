@@ -221,7 +221,7 @@ def run(config):
                 with open(results_file_tmpl.format(z_.var.__format__('3.3f')), 'w') as jf:
                     json.dump(result, jf)
     with open(results_file_tmpl.format('all'), 'w') as jf:
-        json.dump(result, jf)
+        json.dump(results, jf)
 
 
 def main():
