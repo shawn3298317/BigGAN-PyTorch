@@ -18,7 +18,7 @@ def get_config(exp_name, load_weights=''):
     print(exp_name)
     parser = cfg.prepare_parser()
     parser = cfg.add_sample_parser(parser)
-    config = vars(parser.parse_args())
+    config = vars(parser.parse_args([]))
 
     config['config_from_name'] = True
     config['experiment_name'] = exp_name
@@ -40,10 +40,14 @@ def get_config(exp_name, load_weights=''):
     return config
 
 
+def run(exp_name):
+    config = get_config(exp_name)
+    sample.run(config)
+
+
 def test():
     for exp_name in get_experiments(WEIGHTS_ROOT, blacklist):
-        config = get_config(exp_name)
-        sample.run(config)
+        run(exp_name)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,7 @@
 ''' Sample
    This script loads a pretrained net and a weightsfile and sample '''
 import functools
+import json
 import os
 
 import numpy as np
@@ -159,6 +160,18 @@ def run(config):
         sample = functools.partial(utils.sample, G=G, z_=z_, y_=y_, config=config)
         IS_mean, IS_std, FID = get_inception_metrics(sample, config['num_inception_images'],
                                                      num_splits=10, prints=False, use_torch=config['use_torch_FID'])
+        result = {
+            'use_ema': config['use_ema'],
+            'G_eval_mode': config['G_eval_mode'],
+            'z_var': z_.var,
+            'num_inception_images': config['num_inception_images'],
+            'num_standing_accumulations': config['num_standing_accumulations'],
+            'G_batch_size': G_batch_size,
+            'itr': config['itr'],
+            'IS_mean': IS_mean,
+            'IS_std': IS_std,
+            'FID': FID,
+        }
         # Prepare output string
         outstring = 'Using %s weights ' % ('ema' if config['use_ema'] else 'non-ema')
         outstring += 'in %s mode, ' % ('eval' if config['G_eval_mode'] else 'training')
@@ -170,15 +183,25 @@ def run(config):
             outstring += 'using %d standing stat accumulations, ' % config['num_standing_accumulations']
         outstring += 'Itr %d: PYTORCH UNOFFICIAL Inception Score is %3.3f +/- %3.3f, PYTORCH UNOFFICIAL FID is %5.4f' % (
             state_dict['itr'], IS_mean, IS_std, FID)
-        return outstring
+        return result, outstring
+
+    results = []
+
+    name = ''
+    name = f'{state_dict["itr"]}' + '_{}_results.json'
+    name = f'{config["load_weights"]}_' + name if config["load_weights"] else name
+    results_file_tmpl = os.path.join(config['results_root'], orig_exp_name, name)
 
     trunc_file = os.path.join(config['samples_root'], orig_exp_name, f'{config["load_weights"]}truncation_curves_{state_dict["itr"]}.txt')
     with open(trunc_file, 'w') as f:
         if config['sample_inception_metrics']:
             print('Calculating Inception metrics...')
-            result = get_metrics()
-            print(result)
-            f.write(result + '\n')
+            result, msg = get_metrics()
+            print(msg)
+            f.write(msg + '\n')
+            results.append(result)
+            with open(results_file_tmpl.format(z_.var.__format__('3.3f')), 'w') as jf:
+                json.dump(result, jf)
 
         # Sample truncation curve stuff. This is basically the same as the inception metrics code
         if config['sample_trunc_curves']:
@@ -191,9 +214,14 @@ def run(config):
                 if config['accumulate_stats']:
                     utils.accumulate_standing_stats(G, z_, y_, config['n_classes'],
                                                     config['num_standing_accumulations'])
-                result = get_metrics()
-                print(result)
-                f.write(result + '\n')
+                result, msg = get_metrics()
+                print(msg)
+                f.write(msg + '\n')
+                results.append(result)
+                with open(results_file_tmpl.format(z_.var.__format__('3.3f')), 'w') as jf:
+                    json.dump(result, jf)
+    with open(results_file_tmpl.format('all'), 'w') as jf:
+        json.dump(result, jf)
 
 
 def main():

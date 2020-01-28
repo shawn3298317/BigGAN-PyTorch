@@ -138,7 +138,7 @@ def update_config_roots(config):
 
 # Utility to prepare root folders if they don't exist; parent folder must exist
 def prepare_root(config):
-    for key in ['weights_root', 'logs_root', 'samples_root']:
+    for key in ['weights_root', 'logs_root', 'samples_root', 'results_root']:
         if not os.path.exists(config[key]):
             print('Making directory {} for {}...'.format(config[key], key))
             os.makedirs(config[key], exist_ok=True)

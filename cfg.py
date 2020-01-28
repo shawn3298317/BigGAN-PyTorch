@@ -265,6 +265,9 @@ def prepare_parser():
         '--samples_root', type=str, default='samples',
         help='Default location to store samples (default: %(default)s)')
     parser.add_argument(
+        '--results_root', type=str, default='results',
+        help='Default location to store results (default: %(default)s)')
+    parser.add_argument(
         '--pbar', type=str, default='mine',
         help='Type of progressbar to use; one of "mine" or "tqdm" '
         '(default: %(default)s)')
