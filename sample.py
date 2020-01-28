@@ -22,7 +22,8 @@ def run(config):
                   'best_IS': 0, 'best_FID': 999999, 'config': config}
 
     orig_exp_name = config['experiment_name']
-    os.makedirs(os.path.join(config['samples_root'], orig_exp_name), exist_ok=True)
+    for key in ['samples_root', 'results_root']:
+        os.makedirs(os.path.join(config[key], orig_exp_name), exist_ok=True)
     # Optionally, get the configuration from the state dict. This allows for
     # recovery of the config provided only a state dict and experiment name,
     # and can be convenient for writing less verbose sample shell scripts.
@@ -163,11 +164,11 @@ def run(config):
         result = {
             'use_ema': config['use_ema'],
             'G_eval_mode': config['G_eval_mode'],
-            'z_var': z_.var,
+            'z_var': float(z_.var),
             'num_inception_images': config['num_inception_images'],
             'num_standing_accumulations': config['num_standing_accumulations'],
             'G_batch_size': G_batch_size,
-            'itr': config['itr'],
+            'itr': state_dict['itr'],
             'IS_mean': IS_mean,
             'IS_std': IS_std,
             'FID': FID,

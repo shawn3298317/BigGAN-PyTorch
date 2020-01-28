@@ -31,10 +31,10 @@ def get_config(exp_name, load_weights=''):
     config['G_batch_size'] = 32
     config['batch_size'] = 32
 
-    config['sample_npz'] = True
-    config['sample_random'] = True
-    config['sample_sheets'] = True
-    config['sample_interps'] = True
+    config['sample_npz'] = False
+    config['sample_random'] = False
+    config['sample_sheets'] = False
+    config['sample_interps'] = False
     config['sample_inception_metrics'] = True
     config['sample_trunc_curves'] = '0.05_0.05_1.0'
     return config
