@@ -1,0 +1,3 @@
+#! /bin/sh
+
+sudo /home/software/perftools/0.1/bin/satori-ipmitool | grep "Instantaneous power reading" | awk '{print $4}'
