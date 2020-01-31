@@ -461,6 +461,7 @@ nclass_dict = {
 classes_per_sheet_dict = {
     'ImageNet': 16,
     'Places365': 16,
+    'Hybrid1365': 16,
     'Places365-Challenge': 16,
     'I32': 50, 'I32_hdf5': 50,
     'I64': 20, 'I64_hdf5': 20,
