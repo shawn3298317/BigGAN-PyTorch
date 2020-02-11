@@ -63,10 +63,12 @@ def run(config):
     loaders = datasets.get_dataloaders(**config)
     dataset_name = f'{config["dataset"]}-{config["resolution"]}'
 
+    print("Loading inception net...")
     # Load inception net
     net = inception_utils.load_inception_net(config)
     pool, logits, labels = [], [], []
-    device = 'cuda'
+    device = 'cuda' if torch.cuda.is_available() else "cpu"
+    print("Getting logits from pretrained model...")
     for i, (x, y) in enumerate(tqdm(loaders[0])):
         x = x.to(device)
         with torch.no_grad():

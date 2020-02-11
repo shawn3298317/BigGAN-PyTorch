@@ -74,7 +74,7 @@ def run(config):
 
 def main_worker(gpu, ngpus_per_node, config):
 
-    device = f'cuda:{gpu}'
+    device = f'cuda:{gpu}' if gpu is not None else "cpu"
     config['gpu'] = gpu
     torch.backends.cudnn.benchmark = True
     if config['distributed']:
@@ -150,7 +150,8 @@ def main_worker(gpu, ngpus_per_node, config):
         torch.cuda.set_device(config['gpu'])
         GD = GD.cuda(config['gpu'])
     else:
-        GD = torch.nn.DataParallel(GD).cuda()
+        # TODO: check if dataParallel works under device=cpu scenario
+        GD = torch.nn.DataParallel(GD).cpu()
 
     torch.cuda.empty_cache()
 

@@ -272,6 +272,11 @@ def load_inception_net(config):
     nc = {'imagenet': 1000, 'places365': 365, 'hybrid1365': 1365}.get(dataset, 1000)
     inception_model = inceptionv3(num_classes=nc, pretrained=dataset)
     inception_model.fc = inception_model.last_linear
+    if not torch.cuda.is_available():
+        print("Loading inception model in cpu mem...")
+        inception_model = WrapInception(inception_model.eval(), pretrained=dataset).cpu()
+        return inception_model
+
     inception_model = WrapInception(inception_model.eval(), pretrained=dataset).cuda()
     if config['distributed']:
         if config['gpu'] is not None:
